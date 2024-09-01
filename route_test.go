@@ -1,4 +1,4 @@
-package clif
+package clif_test
 
 import (
 	"context"
@@ -6,15 +6,17 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"impractical.co/clif"
+	"impractical.co/clif/flagtypes"
 )
 
 func TestRoute(t *testing.T) {
 	t.Parallel()
 	type testCase struct {
-		app             Application
+		app             clif.Application
 		input           []string
 		expectedCmdName string
-		expectedFlags   map[string]Flag
+		expectedFlags   map[string]clif.Flag
 		expectedArgs    []string
 		expectedErr     error
 	}
@@ -22,23 +24,23 @@ func TestRoute(t *testing.T) {
 	cases := map[string]testCase{
 		"basic": {
 			input:           []string{"help"},
-			app:             Application{Commands: []Command{{Name: "help"}}},
+			app:             clif.Application{Commands: []clif.Command{{Name: "help"}}},
 			expectedCmdName: "help",
-			expectedFlags:   map[string]Flag{},
+			expectedFlags:   map[string]clif.Flag{},
 		},
 		"list-flags": {
 			input:           []string{"hello", "--name=foo", "--name", "bar", "--name", "baaz"},
-			app:             Application{Commands: []Command{{Name: "hello", Flags: []FlagDef{{Name: "name", ValueAccepted: true, Parser: StringListParser{}}}}}},
+			app:             clif.Application{Commands: []clif.Command{{Name: "hello", Flags: []clif.FlagDef{{Name: "name", ValueAccepted: true, Parser: flagtypes.StringListParser{}}}}}},
 			expectedCmdName: "hello",
-			expectedFlags: map[string]Flag{
-				"name": ListFlag[string]{Name: "name", RawValue: "foo, bar, baaz", Value: []string{"foo", "bar", "baaz"}},
+			expectedFlags: map[string]clif.Flag{
+				"name": flagtypes.ListFlag[string]{Name: "name", RawValue: "foo, bar, baaz", Value: []string{"foo", "bar", "baaz"}},
 			},
 		},
 	}
 	for name, testCase := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			res, err := Route(context.Background(), testCase.app, testCase.input)
+			res, err := clif.Route(context.Background(), testCase.app, testCase.input)
 			if err != nil && testCase.expectedErr == nil {
 				t.Fatalf("Unexpected error: %+v", err)
 			}
