@@ -1,7 +1,7 @@
 // Package clif provides a framework for writing command line applications.
 //
 // The framework starts with an [Application], which defines some global flags
-// that apply to all commands and the different [Command]s that the application
+// that apply to all commands and the different Commands that the application
 // accepts.
 //
 // Each flag is defined by a [FlagDef], which describes the flag name and how
