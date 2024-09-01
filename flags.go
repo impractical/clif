@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -84,8 +85,10 @@ type FlagDef struct {
 // FlagParser is an interface for parsing flag values. Implementing it allows
 // the definition of new types of flags.
 type FlagParser interface {
-	// Parse is called to turn a name and value string into a Flag.
-	Parse(ctx context.Context, name, value string) (Flag, error)
+	// Parse is called to turn a name and value string into a Flag. The
+	// prior value is passed to support flags that can be passed multiple
+	// times to specify multiple values.
+	Parse(ctx context.Context, name, value string, prior Flag) (Flag, error)
 
 	// FlagType should return a user-friendly indication of the type of
 	// input this flag type expects, like "string" or "int" or "timestamp".
@@ -119,13 +122,13 @@ func listFlagDefs(command parseable, activeCommand bool) []FlagDef {
 // BasicFlagConstraint describes the types that the [BasicFlag] [Flag]
 // implementation supports.
 type BasicFlagConstraint interface {
-	~bool | ~[]bool |
-		~string | ~[]string |
-		~int | ~int8 | ~int16 | ~int32 | ~int64 | ~[]int | ~[]int8 | ~[]int16 | ~[]int32 | ~[]int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~[]uint | ~[]uint8 | ~[]uint16 | ~[]uint32 | ~[]uint64 |
-		~float32 | ~float64 | ~[]float32 | ~[]float64 |
-		~complex64 | ~complex128 | ~[]complex64 | ~[]complex128 |
-		time.Time | []time.Time
+	~bool |
+		~string |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+		~float32 | ~float64 |
+		~complex64 | ~complex128 |
+		time.Time
 }
 
 // BasicFlag implements [Flag] for a base set of builtin types, allowing out of the box functionality similar to the [flag] package.
@@ -160,7 +163,7 @@ type BoolParser struct{}
 //
 // If the value is empty, the flag will be set to "true". Otherwise, the flag
 // will be set to the [strconv.ParseBool] result for the value.
-func (BoolParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (BoolParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	// if we only have the flag name with no value, assume true
 	val := true
 
@@ -192,7 +195,7 @@ type StringParser struct{}
 // [BasicFlag].
 //
 // The Value and RawValue will always match.
-func (StringParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (StringParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	return BasicFlag[string]{
 		Name:     name,
 		RawValue: value,
@@ -214,7 +217,7 @@ type IntParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseInt] for RawValue,
 // assuming base 10 and a 64 bit integer.
-func (IntParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (IntParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return nil, err
@@ -239,7 +242,7 @@ type UintParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseUint] for RawValue,
 // assuming base 10 and a 64 bit integer.
-func (UintParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (UintParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return nil, err
@@ -265,7 +268,7 @@ type FloatParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseFloat] for RawValue,
 // assuming a 64 bit float.
-func (FloatParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (FloatParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return nil, err
@@ -292,7 +295,7 @@ type TimeParser struct{}
 //
 // Value will be set to the [time.Time] represented by the RawValue. Only the
 // [time.RFC3339Nano] format is supported at the moment.
-func (TimeParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (TimeParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := time.Parse(time.RFC3339Nano, value)
 	if err != nil {
 		return nil, err
@@ -319,7 +322,7 @@ type DurationParser struct{}
 //
 // Value will be set to the [time.Duration] returned by [time.ParseDuration]
 // when passed the RawValue.
-func (DurationParser) Parse(_ context.Context, name string, value string) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (DurationParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
 		return nil, err
@@ -335,4 +338,352 @@ func (DurationParser) Parse(_ context.Context, name string, value string) (Flag,
 // flag.
 func (DurationParser) FlagType() string {
 	return "duration"
+}
+
+// ListFlag implements [Flag] as a flag that can be specified multiple times.
+type ListFlag[FlagType BasicFlagConstraint] struct {
+	// Name will be set to the name the flag was invoked with.
+	Name string
+
+	// RawValue will be set to the string the user passed.
+	RawValue string
+
+	// Value will be set to the value that RawValue parsed into.
+	Value []FlagType
+}
+
+// GetName fills the [Flag] interface and returns the name the flag was invoked
+// with.
+func (flag ListFlag[FlagType]) GetName() string {
+	return flag.Name
+}
+
+// GetRawValue fills the [Flag] interface and returns the string the user
+// passed as the flag's value.
+func (flag ListFlag[FlagType]) GetRawValue() string {
+	return flag.RawValue
+}
+
+// BoolListParser is a [FlagParser] implementation that can parse values
+// representing lists of bools, either specifed as a comma-separated list or by
+// specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]bool].
+type BoolListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][bool]]. The actual conversion is done by the
+// [BoolParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (BoolListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[bool]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[bool])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[bool]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := BoolParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	boolFlag, ok := basicVal.(BasicFlag[bool])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.BoolParser to return clif.BasicFlag[bool], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, strconv.FormatBool(val))
+	}
+	return ListFlag[bool]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, strconv.FormatBool(boolFlag.Value)), ", "),
+		Value:    append(list.Value, boolFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (BoolListParser) FlagType() string {
+	return "[]bool"
+}
+
+// StringListParser is a [FlagParser] implementation that can parse values
+// representing lists of strings, either specifed as a comma-separated list or
+// by specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]string].
+type StringListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][string]].
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (StringListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[string]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[string])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[string]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := StringParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	stringFlag, ok := basicVal.(BasicFlag[string])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.StringParser to return clif.BasicFlag[string], got %T", basicVal)
+	}
+	return ListFlag[string]{
+		Name:     name,
+		RawValue: strings.Join(append(list.Value, stringFlag.Value), ", "),
+		Value:    append(list.Value, stringFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a string
+// flag.
+func (StringListParser) FlagType() string {
+	return "[]string"
+}
+
+// IntListParser is a [FlagParser] implementation that can parse values
+// representing lists of ints, either specifed as a comma-separated list or by
+// specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]int64].
+type IntListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][int64]]. The actual conversion is done by the
+// [IntParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (IntListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[int64]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[int64])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[int64]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := IntParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	intFlag, ok := basicVal.(BasicFlag[int64])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.IntParser to return clif.BasicFlag[int64], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, strconv.FormatInt(val, 10))
+	}
+	return ListFlag[int64]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, strconv.FormatInt(intFlag.Value, 10)), ", "),
+		Value:    append(list.Value, intFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (IntListParser) FlagType() string {
+	return "[]int"
+}
+
+// UintListParser is a [FlagParser] implementation that can parse values
+// representing lists of uints, either specifed as a comma-separated list or by
+// specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]uint64].
+type UintListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][uint64]]. The actual conversion is done by the
+// [UintParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (UintListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[uint64]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[uint64])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[uint64]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := UintParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	uintFlag, ok := basicVal.(BasicFlag[uint64])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.UintParser to return clif.BasicFlag[uint64], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, strconv.FormatUint(val, 10))
+	}
+	return ListFlag[uint64]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, strconv.FormatUint(uintFlag.Value, 10)), ", "),
+		Value:    append(list.Value, uintFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (UintListParser) FlagType() string {
+	return "[]uint"
+}
+
+// FloatListParser is a [FlagParser] implementation that can parse values
+// representing lists of floats, either specifed as a comma-separated list or
+// by specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]float64].
+type FloatListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][float64]]. The actual conversion is done by the
+// [FloatParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (FloatListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[float64]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[float64])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[float64]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := FloatParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	floatFlag, ok := basicVal.(BasicFlag[float64])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.FloatParser to return clif.BasicFlag[float64], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, strconv.FormatFloat(val, 'g', -1, 64))
+	}
+	return ListFlag[float64]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, strconv.FormatFloat(floatFlag.Value, 'g', -1, 64)), ", "),
+		Value:    append(list.Value, floatFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (FloatListParser) FlagType() string {
+	return "[]float"
+}
+
+// TimeListParser is a [FlagParser] implementation that can parse values
+// representing lists of timestamps, either specifed as a comma-separated list
+// or by specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]time.Time].
+type TimeListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][time.Time]]. The actual conversion is done by the
+// [TimeParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (TimeListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[time.Time]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[time.Time])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[time.Time]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := TimeParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	timeFlag, ok := basicVal.(BasicFlag[time.Time])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.TimeParser to return clif.BasicFlag[time.Time], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, val.Format(time.RFC3339Nano))
+	}
+	return ListFlag[time.Time]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, timeFlag.Value.Format(time.RFC3339Nano)), ", "),
+		Value:    append(list.Value, timeFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (TimeListParser) FlagType() string {
+	return "[]timestamp"
+}
+
+// DurationListParser is a [FlagParser] implementation that can parse values
+// representing lists of durations, either specifed as a comma-separated list
+// or by specifying the flag multiple times.
+//
+// The results will be returned as a ListFlag[[]time.Duration].
+type DurationListParser struct{}
+
+// Parse fills the [FlagParser] interface and converts a name and value into a
+// [ListFlag][[][time.Duration]]. The actual conversion is done by the
+// [DurationParser.Parse] method.
+//
+// The RawValue will always use the comma-separated representation of the list,
+// as there's no meaningful way to represent each flag usage.
+func (DurationListParser) Parse(ctx context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+	var list ListFlag[time.Duration]
+	if prior != nil {
+		asserted, ok := prior.(ListFlag[time.Duration])
+		if !ok {
+			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[time.Duration]], got %T", prior)
+		}
+		list = asserted
+	}
+	basicVal, err := DurationParser{}.Parse(ctx, name, value, nil)
+	if err != nil {
+		return nil, err
+	}
+	durationFlag, ok := basicVal.(BasicFlag[time.Duration])
+	if !ok {
+		return nil, fmt.Errorf("expected clif.DurationParser to return clif.BasicFlag[time.Duration], got %T", basicVal)
+	}
+	raw := make([]string, 0, len(list.Value))
+	for _, val := range list.Value {
+		raw = append(raw, val.String())
+	}
+	return ListFlag[time.Duration]{
+		Name:     name,
+		RawValue: strings.Join(append(raw, durationFlag.Value.String()), ", "),
+		Value:    append(list.Value, durationFlag.Value),
+	}, nil
+}
+
+// FlagType fills the [FlagParser] interface and identifies this as a int
+// flag.
+func (DurationListParser) FlagType() string {
+	return "[]duration"
 }

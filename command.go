@@ -119,7 +119,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 				// if we've declared another flag but there's an open
 				// flag definition, it has no value, close it
 				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "")
+					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
 					if err != nil {
 						return res, err
 					}
@@ -140,7 +140,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 				// done with this argument
 				if !flagDef.ValueAccepted || hasValue {
 					// TODO: for flags that can be specified multiple times, we need to pass in the existing value so it can be modified
-					flag, err := flagDef.Parser.Parse(ctx, arg, value)
+					flag, err := flagDef.Parser.Parse(ctx, arg, value, res.flags[arg])
 					if err != nil {
 						return res, err
 					}
@@ -196,7 +196,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 				// seems reasonable to expect consumers to not
 				// allow that confusion.
 				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "")
+					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
 					if err != nil {
 						return res, err
 					}
@@ -221,7 +221,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 		// if we don't accept args and have an open flag definition,
 		// assume this is the flag's value.
 		if !root.argsAccepted() {
-			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg)
+			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
 			if err != nil {
 				return res, err
 			}
@@ -247,7 +247,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 			continue
 		}
 
-		flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg)
+		flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
 		if err != nil {
 			return res, err
 		}
