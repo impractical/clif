@@ -49,6 +49,34 @@ func (err MissingFlagValueError) Error() string {
 	return fmt.Sprintf("no value set for flag that requires value %q", string(err))
 }
 
+// UnexpectedFlagPriorTypeError is returned when a FlagParser is passed a prior
+// value for that flag that wasn't of the type it was expecting. This shouldn't
+// be possible unless the FlagParser returns Flags it doesn't expect to receive
+// as prior values.
+type UnexpectedFlagPriorTypeError struct {
+	Name     string
+	Expected any
+	Got      any
+}
+
+func (err UnexpectedFlagPriorTypeError) Error() string {
+	return fmt.Sprintf("expected prior value of flag %q to be %T, got %T", err.Name, err.Expected, err.Got)
+}
+
+// UnexpectedFlagValueTypeError is returned when a [ListFlag] parser is relying
+// on another [FlagParser] to parse each flag in the collection, but doesn't
+// get the [Flag] type it expects. This usually indicates a bug in the
+// [ListFlag] parser.
+type UnexpectedFlagValueTypeError struct {
+	Name     string
+	Expected any
+	Got      any
+}
+
+func (err UnexpectedFlagValueTypeError) Error() string {
+	return fmt.Sprintf("expected value of flag %q to be %T, got %T", err.Name, err.Expected, err.Got)
+}
+
 // FlagDef holds the definition of a flag.
 type FlagDef struct {
 	// Name is the name of the flag. It's what will be surfaced in
@@ -163,7 +191,7 @@ type BoolParser struct{}
 //
 // If the value is empty, the flag will be set to "true". Otherwise, the flag
 // will be set to the [strconv.ParseBool] result for the value.
-func (BoolParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (BoolParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	// if we only have the flag name with no value, assume true
 	val := true
 
@@ -195,7 +223,7 @@ type StringParser struct{}
 // [BasicFlag].
 //
 // The Value and RawValue will always match.
-func (StringParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (StringParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	return BasicFlag[string]{
 		Name:     name,
 		RawValue: value,
@@ -217,7 +245,7 @@ type IntParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseInt] for RawValue,
 // assuming base 10 and a 64 bit integer.
-func (IntParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (IntParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return nil, err
@@ -242,7 +270,7 @@ type UintParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseUint] for RawValue,
 // assuming base 10 and a 64 bit integer.
-func (UintParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (UintParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return nil, err
@@ -268,7 +296,7 @@ type FloatParser struct{}
 //
 // The Value will be set to the result of [strconv.ParseFloat] for RawValue,
 // assuming a 64 bit float.
-func (FloatParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (FloatParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return nil, err
@@ -295,7 +323,7 @@ type TimeParser struct{}
 //
 // Value will be set to the [time.Time] represented by the RawValue. Only the
 // [time.RFC3339Nano] format is supported at the moment.
-func (TimeParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (TimeParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := time.Parse(time.RFC3339Nano, value)
 	if err != nil {
 		return nil, err
@@ -322,7 +350,7 @@ type DurationParser struct{}
 //
 // Value will be set to the [time.Duration] returned by [time.ParseDuration]
 // when passed the RawValue.
-func (DurationParser) Parse(_ context.Context, name, value string, prior Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
+func (DurationParser) Parse(_ context.Context, name, value string, _ Flag) (Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
 		return nil, err
@@ -365,7 +393,7 @@ func (flag ListFlag[FlagType]) GetRawValue() string {
 }
 
 // BoolListParser is a [FlagParser] implementation that can parse values
-// representing lists of bools, either specifed as a comma-separated list or by
+// representing lists of bools, either specified as a comma-separated list or by
 // specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]bool].
@@ -382,7 +410,11 @@ func (BoolListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[bool])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[bool]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -392,7 +424,11 @@ func (BoolListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	}
 	boolFlag, ok := basicVal.(BasicFlag[bool])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.BoolParser to return clif.BasicFlag[bool], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[bool]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
@@ -412,7 +448,7 @@ func (BoolListParser) FlagType() string {
 }
 
 // StringListParser is a [FlagParser] implementation that can parse values
-// representing lists of strings, either specifed as a comma-separated list or
+// representing lists of strings, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]string].
@@ -428,7 +464,11 @@ func (StringListParser) Parse(ctx context.Context, name, value string, prior Fla
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[string])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[string]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -438,7 +478,11 @@ func (StringListParser) Parse(ctx context.Context, name, value string, prior Fla
 	}
 	stringFlag, ok := basicVal.(BasicFlag[string])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.StringParser to return clif.BasicFlag[string], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[string]{},
+			Got:      basicVal,
+		}
 	}
 	return ListFlag[string]{
 		Name:     name,
@@ -454,7 +498,7 @@ func (StringListParser) FlagType() string {
 }
 
 // IntListParser is a [FlagParser] implementation that can parse values
-// representing lists of ints, either specifed as a comma-separated list or by
+// representing lists of ints, either specified as a comma-separated list or by
 // specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]int64].
@@ -471,7 +515,11 @@ func (IntListParser) Parse(ctx context.Context, name, value string, prior Flag) 
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[int64])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[int64]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -481,7 +529,11 @@ func (IntListParser) Parse(ctx context.Context, name, value string, prior Flag) 
 	}
 	intFlag, ok := basicVal.(BasicFlag[int64])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.IntParser to return clif.BasicFlag[int64], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[int64]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
@@ -501,7 +553,7 @@ func (IntListParser) FlagType() string {
 }
 
 // UintListParser is a [FlagParser] implementation that can parse values
-// representing lists of uints, either specifed as a comma-separated list or by
+// representing lists of uints, either specified as a comma-separated list or by
 // specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]uint64].
@@ -518,7 +570,11 @@ func (UintListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[uint64])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[uint64]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -528,7 +584,11 @@ func (UintListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	}
 	uintFlag, ok := basicVal.(BasicFlag[uint64])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.UintParser to return clif.BasicFlag[uint64], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[uint64]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
@@ -548,7 +608,7 @@ func (UintListParser) FlagType() string {
 }
 
 // FloatListParser is a [FlagParser] implementation that can parse values
-// representing lists of floats, either specifed as a comma-separated list or
+// representing lists of floats, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]float64].
@@ -565,7 +625,11 @@ func (FloatListParser) Parse(ctx context.Context, name, value string, prior Flag
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[float64])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[float64]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -575,7 +639,11 @@ func (FloatListParser) Parse(ctx context.Context, name, value string, prior Flag
 	}
 	floatFlag, ok := basicVal.(BasicFlag[float64])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.FloatParser to return clif.BasicFlag[float64], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[float64]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
@@ -595,7 +663,7 @@ func (FloatListParser) FlagType() string {
 }
 
 // TimeListParser is a [FlagParser] implementation that can parse values
-// representing lists of timestamps, either specifed as a comma-separated list
+// representing lists of timestamps, either specified as a comma-separated list
 // or by specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]time.Time].
@@ -612,7 +680,11 @@ func (TimeListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[time.Time])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[time.Time]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -622,7 +694,11 @@ func (TimeListParser) Parse(ctx context.Context, name, value string, prior Flag)
 	}
 	timeFlag, ok := basicVal.(BasicFlag[time.Time])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.TimeParser to return clif.BasicFlag[time.Time], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[time.Time]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
@@ -642,7 +718,7 @@ func (TimeListParser) FlagType() string {
 }
 
 // DurationListParser is a [FlagParser] implementation that can parse values
-// representing lists of durations, either specifed as a comma-separated list
+// representing lists of durations, either specified as a comma-separated list
 // or by specifying the flag multiple times.
 //
 // The results will be returned as a ListFlag[[]time.Duration].
@@ -659,7 +735,11 @@ func (DurationListParser) Parse(ctx context.Context, name, value string, prior F
 	if prior != nil {
 		asserted, ok := prior.(ListFlag[time.Duration])
 		if !ok {
-			return nil, fmt.Errorf("expected prior value to be a clif.ListFlag[clif.BasicFlag[time.Duration]], got %T", prior)
+			return nil, UnexpectedFlagPriorTypeError{
+				Name:     name,
+				Expected: list,
+				Got:      prior,
+			}
 		}
 		list = asserted
 	}
@@ -669,7 +749,11 @@ func (DurationListParser) Parse(ctx context.Context, name, value string, prior F
 	}
 	durationFlag, ok := basicVal.(BasicFlag[time.Duration])
 	if !ok {
-		return nil, fmt.Errorf("expected clif.DurationParser to return clif.BasicFlag[time.Duration], got %T", basicVal)
+		return nil, UnexpectedFlagValueTypeError{
+			Name:     name,
+			Expected: BasicFlag[time.Duration]{},
+			Got:      basicVal,
+		}
 	}
 	raw := make([]string, 0, len(list.Value))
 	for _, val := range list.Value {
