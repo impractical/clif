@@ -39,11 +39,11 @@ func (DurationParser) FlagType() string {
 // values representing lists of durations, either specified as a
 // comma-separated list or by specifying the flag multiple times.
 //
-// The results will be returned as a [ListFlag[time.Duration]].
+// The results will be returned as a [ListFlag][time.Duration].
 type DurationListParser struct{}
 
 // Parse fills the [clif.FlagParser] interface and converts a name and value
-// into a [ListFlag[time.Duration]]. The actual conversion is done by the
+// into a [ListFlag][time.Duration]. The actual conversion is done by the
 // [DurationParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,

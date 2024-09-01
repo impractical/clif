@@ -33,11 +33,11 @@ func (StringParser) FlagType() string {
 // representing lists of strings, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
-// The results will be returned as a [ListFlag[string]].
+// The results will be returned as a [ListFlag][string].
 type StringListParser struct{}
 
 // Parse fills the [clif.FlagParser] interface and converts a name and value
-// into a [ListFlag[string]].
+// into a [ListFlag][string].
 //
 // The RawValue will always use the comma-separated representation of the list,
 // as there's no meaningful way to represent each flag usage.

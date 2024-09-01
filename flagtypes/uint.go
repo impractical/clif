@@ -39,11 +39,11 @@ func (UintParser) FlagType() string {
 // representing lists of uints, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
-// The results will be returned as a [ListFlag[uint64]].
+// The results will be returned as a [ListFlag][uint64].
 type UintListParser struct{}
 
 // Parse fills the [clif.FlagParser] interface and converts a name and value
-// into a [ListFlag[uint64]]. The actual conversion is done by the
+// into a [ListFlag][uint64]. The actual conversion is done by the
 // [UintParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,

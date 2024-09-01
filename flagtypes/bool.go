@@ -46,11 +46,11 @@ func (BoolParser) FlagType() string {
 // representing lists of bools, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
-// The results will be returned as a [ListFlag[bool]].
+// The results will be returned as a [ListFlag][bool].
 type BoolListParser struct{}
 
 // Parse fills the [clif.FlagParser] interface and converts a name and value
-// into a [ListFlag[bool]]. The actual conversion is done by the
+// into a [ListFlag][bool]. The actual conversion is done by the
 // [BoolParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
