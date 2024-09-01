@@ -71,13 +71,15 @@ func (cmd Command) flags() []FlagDef       { return cmd.Flags }
 
 type parsedCommand struct {
 	subcommand *Command
-	flags      []Flag
+	flags      map[string]Flag
 	args       []string
 	unparsed   []string
 }
 
 func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags bool) (parsedCommand, error) {
-	var res parsedCommand
+	res := parsedCommand{
+		flags: map[string]Flag{},
+	}
 	if len(args) < 1 {
 		return res, nil
 	}
@@ -121,7 +123,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 					if err != nil {
 						return res, err
 					}
-					res.flags = append(res.flags, flag)
+					res.flags[flag.GetName()] = flag
 					openFlagDef = nil
 					openFlagArg = ""
 				}
@@ -142,7 +144,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 					if err != nil {
 						return res, err
 					}
-					res.flags = append(res.flags, flag)
+					res.flags[flag.GetName()] = flag
 					continue
 				}
 
@@ -198,7 +200,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 					if err != nil {
 						return res, err
 					}
-					res.flags = append(res.flags, flag)
+					res.flags[flag.GetName()] = flag
 				}
 				res.subcommand = &sub
 				if len(args) > pos+1 {
@@ -223,7 +225,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 			if err != nil {
 				return res, err
 			}
-			res.flags = append(res.flags, flag)
+			res.flags[flag.GetName()] = flag
 			openFlagDef = nil
 			openFlagArg = ""
 			continue
@@ -249,7 +251,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 		if err != nil {
 			return res, err
 		}
-		res.flags = append(res.flags, flag)
+		res.flags[flag.GetName()] = flag
 		openFlagDef = nil
 		openFlagArg = ""
 		continue

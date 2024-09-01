@@ -3,6 +3,7 @@ package clif
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ type ExtraInputError struct {
 	CommandPath []Command
 	// Flags holds the Flags that were matched before the error was
 	// produced.
-	Flags []Flag
+	Flags map[string]Flag
 	// Args holds the positional arguments that were parsed before the
 	// error was produced.
 	Args []string
@@ -45,7 +46,7 @@ type RouteResult struct {
 	// Command is the Command that Route believes should be run.
 	Command Command
 	// Flags are the Flags that should be applied to that command.
-	Flags []Flag
+	Flags map[string]Flag
 	// Args are the positional arguments that should be passed to that
 	// command.
 	Args []string
@@ -54,13 +55,15 @@ type RouteResult struct {
 // Route parses the passed input in the context of the passed [Application],
 // turning it into a [Command] with [Flag]s and arguments.
 func Route(ctx context.Context, root Application, input []string) (RouteResult, error) {
-	var result RouteResult
+	result := RouteResult{
+		Flags: map[string]Flag{},
+	}
 	var cmdPath []Command
 	parsed, err := parse(ctx, root, input, false)
 	if err != nil {
 		return result, err
 	}
-	result.Flags = append(result.Flags, parsed.flags...)
+	maps.Copy(result.Flags, parsed.flags)
 	result.Args = append(result.Args, parsed.args...)
 	for parsed.subcommand != nil {
 		result.Command = *parsed.subcommand
@@ -69,7 +72,7 @@ func Route(ctx context.Context, root Application, input []string) (RouteResult, 
 		if err != nil {
 			return result, err
 		}
-		result.Flags = append(result.Flags, parsed.flags...)
+		maps.Copy(result.Flags, parsed.flags)
 		result.Args = append(result.Args, parsed.args...)
 	}
 	if len(parsed.unparsed) > 0 {

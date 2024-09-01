@@ -19,7 +19,5 @@ type Handler interface {
 type HandlerBuilder interface {
 	// Build creates a Handler by parsing the Flags and args into the
 	// appropriate handler type.
-	Build(ctx context.Context, flags []Flag, args []string, resp *Response) Handler
+	Build(ctx context.Context, flags map[string]Flag, args []string, resp *Response) Handler
 }
-
-// TODO: should flags be a map, not a slice?

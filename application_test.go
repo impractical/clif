@@ -7,7 +7,7 @@ import (
 
 type funcCommandHandler func(ctx context.Context, resp *Response)
 
-func (f funcCommandHandler) Build(_ context.Context, _ []Flag, _ []string, _ *Response) Handler { //nolint:ireturn // filling an interface
+func (f funcCommandHandler) Build(_ context.Context, _ map[string]Flag, _ []string, _ *Response) Handler { //nolint:ireturn // filling an interface
 	return f
 }
 
@@ -16,12 +16,12 @@ func (f funcCommandHandler) Handle(ctx context.Context, resp *Response) {
 }
 
 type flagCommandHandler struct {
-	flags []Flag
+	flags map[string]Flag
 	args  []string
-	f     func(ctx context.Context, flags []Flag, args []string, resp *Response)
+	f     func(ctx context.Context, flags map[string]Flag, args []string, resp *Response)
 }
 
-func (f flagCommandHandler) Build(_ context.Context, flags []Flag, args []string, _ *Response) Handler { //nolint:ireturn // filling an interface
+func (f flagCommandHandler) Build(_ context.Context, flags map[string]Flag, args []string, _ *Response) Handler { //nolint:ireturn // filling an interface
 	f.flags = flags
 	f.args = args
 	return f
@@ -56,7 +56,7 @@ func ExampleApplication() {
 							},
 						},
 						Handler: flagCommandHandler{
-							f: func(_ context.Context, flags []Flag, args []string, resp *Response) {
+							f: func(_ context.Context, flags map[string]Flag, args []string, resp *Response) {
 								fmt.Fprintln(resp.Output, flags, args)
 							},
 						},
@@ -90,18 +90,18 @@ func ExampleApplication() {
 	// output:
 	// this is help information
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{quux hello hello}] []
+	// map[quux:{quux hello hello}] []
 	// 0
-	// [{baaz  true} {quux hello hello}] []
+	// map[baaz:{baaz  true} quux:{quux hello hello}] []
 	// 0
 }
