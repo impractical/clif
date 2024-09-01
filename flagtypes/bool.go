@@ -8,11 +8,12 @@ import (
 	"impractical.co/clif"
 )
 
-// BoolParser is a [clif.FlagParser] implementation that can parse boolean values.
+// BoolParser is a [clif.FlagParser] implementation that can parse boolean
+// values.
 type BoolParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // If the value is empty, the flag will be set to "true". Otherwise, the flag
 // will be set to the [strconv.ParseBool] result for the value.
@@ -42,14 +43,14 @@ func (BoolParser) FlagType() string {
 }
 
 // BoolListParser is a [clif.FlagParser] implementation that can parse values
-// representing lists of bools, either specified as a comma-separated list or by
-// specifying the flag multiple times.
+// representing lists of bools, either specified as a comma-separated list or
+// by specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]bool].
+// The results will be returned as a [ListFlag[bool]].
 type BoolListParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [ListFlag][[][bool]]. The actual conversion is done by the
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[bool]]. The actual conversion is done by the
 // [BoolParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
@@ -90,8 +91,8 @@ func (BoolListParser) Parse(ctx context.Context, name, value string, prior clif.
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []bool flag.
 func (BoolListParser) FlagType() string {
 	return "[]bool"
 }

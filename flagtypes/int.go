@@ -11,8 +11,8 @@ import (
 // IntParser is a [clif.FlagParser] implementation that can parse int64 values.
 type IntParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // The Value will be set to the result of [strconv.ParseInt] for RawValue,
 // assuming base 10 and a 64 bit integer.
@@ -28,7 +28,8 @@ func (IntParser) Parse(_ context.Context, name, value string, _ clif.Flag) (clif
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a int
+// flag.
 func (IntParser) FlagType() string {
 	return "int"
 }
@@ -37,11 +38,11 @@ func (IntParser) FlagType() string {
 // representing lists of ints, either specified as a comma-separated list or by
 // specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]int64].
+// The results will be returned as a [ListFlag[int64]].
 type IntListParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [ListFlag][[][int64]]. The actual conversion is done by the
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[int64]]. The actual conversion is done by the
 // [IntParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
@@ -82,8 +83,8 @@ func (IntListParser) Parse(ctx context.Context, name, value string, prior clif.F
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []int flag.
 func (IntListParser) FlagType() string {
 	return "[]int"
 }

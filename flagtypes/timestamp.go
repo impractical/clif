@@ -12,8 +12,8 @@ import (
 // values.
 type TimeParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // Value will be set to the [time.Time] represented by the RawValue. Only the
 // [time.RFC3339Nano] format is supported at the moment.
@@ -29,8 +29,8 @@ func (TimeParser) Parse(_ context.Context, name, value string, _ clif.Flag) (cli
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a timestamp
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// timestamp flag.
 func (TimeParser) FlagType() string {
 	return "timestamp"
 }
@@ -39,11 +39,11 @@ func (TimeParser) FlagType() string {
 // representing lists of timestamps, either specified as a comma-separated list
 // or by specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]time.Time].
+// The results will be returned as a [ListFlag[time.Time]].
 type TimeListParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [ListFlag][[][time.Time]]. The actual conversion is done by the
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[time.Time]]. The actual conversion is done by the
 // [TimeParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
@@ -84,8 +84,8 @@ func (TimeListParser) Parse(ctx context.Context, name, value string, prior clif.
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []timestamp flag.
 func (TimeListParser) FlagType() string {
 	return "[]timestamp"
 }

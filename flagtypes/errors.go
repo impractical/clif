@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-// UnexpectedFlagPriorTypeError is returned when a FlagParser is passed a prior
-// value for that flag that wasn't of the type it was expecting. This shouldn't
-// be possible unless the FlagParser returns Flags it doesn't expect to receive
-// as prior values.
+// UnexpectedFlagPriorTypeError is returned when a [clif.FlagParser] is passed
+// a prior value for that flag that wasn't of the type it was expecting. This
+// shouldn't be possible unless the [clif.FlagParser] returns [clif.Flag]s it
+// doesn't expect to receive as prior values.
 type UnexpectedFlagPriorTypeError struct {
 	Name     string
 	Expected any
@@ -19,9 +19,9 @@ func (err UnexpectedFlagPriorTypeError) Error() string {
 }
 
 // UnexpectedFlagValueTypeError is returned when a [ListFlag] parser is relying
-// on another [FlagParser] to parse each flag in the collection, but doesn't
-// get the [Flag] type it expects. This usually indicates a bug in the
-// [ListFlag] parser.
+// on another [clif.FlagParser] to parse each flag in the collection, but
+// doesn't get the [clif.Flag] type it expects. This usually indicates a bug in
+// the [ListFlag] parser.
 type UnexpectedFlagValueTypeError struct {
 	Name     string
 	Expected any

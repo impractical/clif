@@ -7,11 +7,12 @@ import (
 	"impractical.co/clif"
 )
 
-// StringParser is a [FlagParser] implementation that can parse string values.
+// StringParser is a [clif.FlagParser] implementation that can parse string
+// values.
 type StringParser struct{}
 
-// Parse fills the [FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // The Value and RawValue will always match.
 func (StringParser) Parse(_ context.Context, name, value string, _ clif.Flag) (clif.Flag, error) { //nolint:ireturn // FlagParser interface requires returning an interface
@@ -22,21 +23,21 @@ func (StringParser) Parse(_ context.Context, name, value string, _ clif.Flag) (c
 	}, nil
 }
 
-// FlagType fills the [FlagParser] interface and identifies this as a string
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// string flag.
 func (StringParser) FlagType() string {
 	return "string"
 }
 
-// StringListParser is a [FlagParser] implementation that can parse values
+// StringListParser is a [clif.FlagParser] implementation that can parse values
 // representing lists of strings, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]string].
+// The results will be returned as a [ListFlag[string]].
 type StringListParser struct{}
 
-// Parse fills the [FlagParser] interface and converts a name and value into a
-// [ListFlag][[][string]].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[string]].
 //
 // The RawValue will always use the comma-separated representation of the list,
 // as there's no meaningful way to represent each flag usage.
@@ -72,8 +73,8 @@ func (StringListParser) Parse(ctx context.Context, name, value string, prior cli
 	}, nil
 }
 
-// FlagType fills the [FlagParser] interface and identifies this as a string
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []string flag.
 func (StringListParser) FlagType() string {
 	return "[]string"
 }

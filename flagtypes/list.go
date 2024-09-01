@@ -1,6 +1,7 @@
 package flagtypes
 
-// ListFlag implements [Flag] as a flag that can be specified multiple times.
+// ListFlag implements [clif.Flag] as a flag that can be specified multiple
+// times.
 type ListFlag[FlagType BasicFlagConstraint] struct {
 	// Name will be set to the name the flag was invoked with.
 	Name string
@@ -12,13 +13,13 @@ type ListFlag[FlagType BasicFlagConstraint] struct {
 	Value []FlagType
 }
 
-// GetName fills the [Flag] interface and returns the name the flag was invoked
-// with.
+// GetName fills the [clif.Flag] interface and returns the name the flag was
+// invoked with.
 func (flag ListFlag[FlagType]) GetName() string {
 	return flag.Name
 }
 
-// GetRawValue fills the [Flag] interface and returns the string the user
+// GetRawValue fills the [clif.Flag] interface and returns the string the user
 // passed as the flag's value.
 func (flag ListFlag[FlagType]) GetRawValue() string {
 	return flag.RawValue

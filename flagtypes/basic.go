@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// BasicFlagConstraint describes the types that the [BasicFlag] [Flag]
+// BasicFlagConstraint describes the types that the [BasicFlag] [clif.Flag]
 // implementation supports.
 type BasicFlagConstraint interface {
 	~bool |
@@ -16,7 +16,8 @@ type BasicFlagConstraint interface {
 		time.Time
 }
 
-// BasicFlag implements [Flag] for a base set of builtin types, allowing out of the box functionality similar to the [flag] package.
+// BasicFlag implements [clif.Flag] for a base set of builtin types, allowing
+// out of the box functionality similar to the [flag] package.
 type BasicFlag[FlagType BasicFlagConstraint] struct {
 	// Name will be set to the name the flag was invoked with.
 	Name string
@@ -28,13 +29,13 @@ type BasicFlag[FlagType BasicFlagConstraint] struct {
 	Value FlagType
 }
 
-// GetName fills the [Flag] interface and returns the name the flag was invoked
-// with.
+// GetName fills the [clif.Flag] interface and returns the name the flag was
+// invoked with.
 func (flag BasicFlag[FlagType]) GetName() string {
 	return flag.Name
 }
 
-// GetRawValue fills the [Flag] interface and returns the string the user
+// GetRawValue fills the [clif.Flag] interface and returns the string the user
 // passed as the flag's value.
 func (flag BasicFlag[FlagType]) GetRawValue() string {
 	return flag.RawValue

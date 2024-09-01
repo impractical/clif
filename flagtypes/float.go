@@ -8,11 +8,12 @@ import (
 	"impractical.co/clif"
 )
 
-// FloatParser is a [clif.FlagParser] implementation that can parse float64 values.
+// FloatParser is a [clif.FlagParser] implementation that can parse float64
+// values.
 type FloatParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // The Value will be set to the result of [strconv.ParseFloat] for RawValue,
 // assuming a 64 bit float.
@@ -28,8 +29,8 @@ func (FloatParser) Parse(_ context.Context, name, value string, _ clif.Flag) (cl
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a float
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// float flag.
 func (FloatParser) FlagType() string {
 	return "float"
 }
@@ -38,11 +39,11 @@ func (FloatParser) FlagType() string {
 // representing lists of floats, either specified as a comma-separated list or
 // by specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]float64].
+// The results will be returned as a [ListFlag[float64]].
 type FloatListParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [ListFlag][[][float64]]. The actual conversion is done by the
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[float64]]. The actual conversion is done by the
 // [FloatParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
@@ -83,8 +84,8 @@ func (FloatListParser) Parse(ctx context.Context, name, value string, prior clif
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []float flag.
 func (FloatListParser) FlagType() string {
 	return "[]float"
 }

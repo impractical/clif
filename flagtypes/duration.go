@@ -12,8 +12,8 @@ import (
 // [time.Duration] values.
 type DurationParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [BasicFlag].
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [BasicFlag].
 //
 // Value will be set to the [time.Duration] returned by [time.ParseDuration]
 // when passed the RawValue.
@@ -29,21 +29,21 @@ func (DurationParser) Parse(_ context.Context, name, value string, _ clif.Flag) 
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a duration
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// duration flag.
 func (DurationParser) FlagType() string {
 	return "duration"
 }
 
-// DurationListParser is a [clif.FlagParser] implementation that can parse values
-// representing lists of durations, either specified as a comma-separated list
-// or by specifying the flag multiple times.
+// DurationListParser is a [clif.FlagParser] implementation that can parse
+// values representing lists of durations, either specified as a
+// comma-separated list or by specifying the flag multiple times.
 //
-// The results will be returned as a ListFlag[[]time.Duration].
+// The results will be returned as a [ListFlag[time.Duration]].
 type DurationListParser struct{}
 
-// Parse fills the [clif.FlagParser] interface and converts a name and value into a
-// [ListFlag][[][time.Duration]]. The actual conversion is done by the
+// Parse fills the [clif.FlagParser] interface and converts a name and value
+// into a [ListFlag[time.Duration]]. The actual conversion is done by the
 // [DurationParser.Parse] method.
 //
 // The RawValue will always use the comma-separated representation of the list,
@@ -84,8 +84,8 @@ func (DurationListParser) Parse(ctx context.Context, name, value string, prior c
 	}, nil
 }
 
-// FlagType fills the [clif.FlagParser] interface and identifies this as a int
-// flag.
+// FlagType fills the [clif.FlagParser] interface and identifies this as a
+// []duration flag.
 func (DurationListParser) FlagType() string {
 	return "[]duration"
 }
