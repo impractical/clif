@@ -41,7 +41,7 @@ type parseable interface {
 }
 
 // RouteResult holds information about the [Command] that should be run and the
-// [Flag]s and arguments to pass to it, based on the parsing done by [Route].
+// Flags and arguments to pass to it, based on the parsing done by [Route].
 type RouteResult struct {
 	// Command is the Command that Route believes should be run.
 	Command Command
@@ -53,7 +53,7 @@ type RouteResult struct {
 }
 
 // Route parses the passed input in the context of the passed [Application],
-// turning it into a [Command] with [Flag]s and arguments.
+// turning it into a [Command] with Flags and arguments.
 func Route(ctx context.Context, root Application, input []string) (RouteResult, error) {
 	result := RouteResult{
 		Flags: map[string]Flag{},

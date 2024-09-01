@@ -25,17 +25,17 @@ type Command struct {
 	Name string
 
 	// Aliases are acceptable variations on Name; they will be treated as
-	// equivalent to Name, but will not be listed in the [SubcommandsHelp]
+	// equivalent to Name, but will not be listed in the SubcommandsHelp
 	// output.
 	Aliases []string
 
 	// Description is a short, one-line description of the command, used
-	// when generating the [SubcommandsHelp] output.
+	// when generating the SubcommandsHelp output.
 	Description string
 
 	// Hidden indicates whether a command should be included in
-	// [SubcommandsHelp] output or not. If set to true, the command will be
-	// omitted from [SubcommandsHelp] output.
+	// SubcommandsHelp output or not. If set to true, the command will be
+	// omitted from SubcommandsHelp output.
 	Hidden bool
 
 	// Flags holds definitions for the flags, if any, that this command
@@ -46,7 +46,7 @@ type Command struct {
 	// accepts.
 	Subcommands []Command
 
-	// Handler is the [HandlerBuilder] executed when this Command is used.
+	// Handler is the HandlerBuilder executed when this Command is used.
 	// The Handler will not be executed if a subcommand of this Command is
 	// used.
 	Handler HandlerBuilder

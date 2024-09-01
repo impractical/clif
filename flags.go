@@ -84,9 +84,9 @@ func (err UnknownFlagNameError) Error() string {
 	return fmt.Sprintf("unexpected flag %q", string(err))
 }
 
-// DuplicateFlagNameError is returned when multiple [Command]s use the same
-// flag name, and it would be ambiguous which [Command] the flag applies to.
-// The underlying string will be the flag name, without leading --.
+// DuplicateFlagNameError is returned when multiple Commands use the same flag
+// name, and it would be ambiguous which [Command] the flag applies to. The
+// underlying string will be the flag name, without leading --.
 type DuplicateFlagNameError string
 
 func (err DuplicateFlagNameError) Error() string {

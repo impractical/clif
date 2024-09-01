@@ -14,7 +14,7 @@ type Handler interface {
 }
 
 // HandlerBuilder is an interface that should wrap a [Handler]. It parses the
-// passed [Flag]s and args into a [Handler], to separate out the parsing logic
+// passed Flags and args into a [Handler], to separate out the parsing logic
 // from the business logic.
 type HandlerBuilder interface {
 	// Build creates a Handler by parsing the Flags and args into the

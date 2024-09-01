@@ -4,19 +4,19 @@ import (
 	"io"
 )
 
-// RunOptions holds all the options to pass to [Application.Run]. It should
-// be built by using [RunOption]s to modify a passed in RunOptions.
+// RunOptions holds all the options to pass to [Application.Run]. It should be
+// built by using [RunOption] functions to modify a passed in RunOptions.
 type RunOptions struct {
 	// Output is where command output should be written. Defaults to
-	// [os.Stdout].
+	// os.Stdout.
 	Output io.Writer
 
 	// Error is where the command should write information about errors.
-	// Defaults to [os.Stderr].
+	// Defaults to os.Stderr.
 	Error io.Writer
 
 	// Args are the arguments that were passed to the command. Defaults
-	// to [os.Args][1:].
+	// to os.Args[1:].
 	Args []string
 }
 

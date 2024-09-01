@@ -6,8 +6,8 @@ import (
 
 // UnexpectedFlagPriorTypeError is returned when a [clif.FlagParser] is passed
 // a prior value for that flag that wasn't of the type it was expecting. This
-// shouldn't be possible unless the [clif.FlagParser] returns [clif.Flag]s it
-// doesn't expect to receive as prior values.
+// shouldn't be possible unless the [clif.FlagParser] returns Flags it doesn't
+// expect to receive as prior values.
 type UnexpectedFlagPriorTypeError struct {
 	Name     string
 	Expected any
