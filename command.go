@@ -84,7 +84,6 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 		return res, nil
 	}
 	var openFlagDef *FlagDef
-	var openFlagArg string
 	for pos, arg := range args {
 		// if this argument matches a flag definition we're expecting,
 		// let's assume it's that flag definition. In theory it could
@@ -101,13 +100,12 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 				// if we've declared another flag but there's an open
 				// flag definition, it has no value, close it
 				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
+					flag, err := openFlagDef.Parser.Parse(ctx, flagDef.Name, "", res.flags[flagDef.Name])
 					if err != nil {
 						return res, err
 					}
-					res.flags[flag.GetName()] = flag
+					res.flags[flagDef.Name] = flag
 					openFlagDef = nil
-					openFlagArg = ""
 				}
 
 				// if the flag definition doesn't accept values
@@ -138,7 +136,6 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 					// there isn't one in this arg. The next arg
 					// must be the value
 					openFlagDef = &flagDef
-					openFlagArg = arg
 					continue
 				}
 			} else if !allowNonFlagFlags {
@@ -178,7 +175,7 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 				// seems reasonable to expect consumers to not
 				// allow that confusion.
 				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
+					flag, err := openFlagDef.Parser.Parse(ctx, openFlagDef.Name, "", res.flags[openFlagDef.Name])
 					if err != nil {
 						return res, err
 					}
@@ -203,13 +200,12 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 		// if we don't accept args and have an open flag definition,
 		// assume this is the flag's value.
 		if !root.argsAccepted() {
-			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
+			flag, err := openFlagDef.Parser.Parse(ctx, openFlagDef.Name, arg, res.flags[openFlagDef.Name])
 			if err != nil {
 				return res, err
 			}
 			res.flags[flag.GetName()] = flag
 			openFlagDef = nil
-			openFlagArg = ""
 			continue
 		}
 
@@ -229,13 +225,12 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 			continue
 		}
 
-		flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
+		flag, err := openFlagDef.Parser.Parse(ctx, openFlagDef.Name, arg, res.flags[openFlagDef.Name])
 		if err != nil {
 			return res, err
 		}
 		res.flags[flag.GetName()] = flag
 		openFlagDef = nil
-		openFlagArg = ""
 		continue
 	}
 	return res, nil
