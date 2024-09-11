@@ -66,7 +66,7 @@ func Route(ctx context.Context, root Application, input []string) (RouteResult, 
 	}
 	maps.Copy(result.Flags, parsed.flags)
 	result.Args = append(result.Args, parsed.args...)
-	log.Println(result.Flags)
+	log.Println(result.Flags, parsed.flags)
 	log.Println(parsed.unparsed)
 	for parsed.subcommand != nil {
 		result.Command = *parsed.subcommand

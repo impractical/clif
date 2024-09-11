@@ -3,6 +3,7 @@ package clif
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -87,6 +88,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 	flagList := listFlagDefs(root, true)
 	for _, flag := range flagList {
 		name := strings.ToLower(flag.Name)
+		log.Println("found flag def:", name)
 		_, ok := allFlags[name]
 		if ok {
 			return res, DuplicateFlagNameError(name)
@@ -94,6 +96,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 		allFlags[name] = flag
 		for _, alias := range flag.Aliases {
 			alias = strings.ToLower(alias)
+			log.Println("found flag def:", alias)
 			_, ok := allFlags[alias]
 			if ok {
 				return res, DuplicateFlagNameError(alias)
