@@ -77,32 +77,12 @@ type parsedCommand struct {
 	unparsed   []string
 }
 
-func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags bool) (parsedCommand, error) {
+func parse(ctx context.Context, root parseable, args []string, flagDefs map[string]FlagDef, allowNonFlagFlags bool) (parsedCommand, error) {
 	res := parsedCommand{
 		flags: map[string]Flag{},
 	}
 	if len(args) < 1 {
 		return res, nil
-	}
-	allFlags := map[string]FlagDef{}
-	flagList := listFlagDefs(root, true)
-	for _, flag := range flagList {
-		name := strings.ToLower(flag.Name)
-		log.Println("found flag def:", name)
-		_, ok := allFlags[name]
-		if ok {
-			return res, DuplicateFlagNameError(name)
-		}
-		allFlags[name] = flag
-		for _, alias := range flag.Aliases {
-			alias = strings.ToLower(alias)
-			log.Println("found flag def:", alias)
-			_, ok := allFlags[alias]
-			if ok {
-				return res, DuplicateFlagNameError(alias)
-			}
-			allFlags[alias] = flag
-		}
 	}
 	var openFlagDef *FlagDef
 	var openFlagArg string
@@ -117,8 +97,9 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 			trimmed := strings.TrimPrefix(arg, "--")
 			argument, value, hasValue := strings.Cut(trimmed, "=")
 			arg = strings.ToLower(argument)
-			flagDef, ok := allFlags[arg]
+			flagDef, ok := flagDefs[arg]
 			if ok {
+				log.Println("found flag", arg)
 				// if we've declared another flag but there's an open
 				// flag definition, it has no value, close it
 				if openFlagDef != nil {
@@ -224,6 +205,7 @@ func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags
 		// if we don't accept args and have an open flag definition,
 		// assume this is the flag's value.
 		if !root.argsAccepted() {
+			log.Println("found argument for", openFlagArg, arg)
 			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
 			if err != nil {
 				return res, err

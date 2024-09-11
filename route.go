@@ -3,7 +3,6 @@ package clif
 import (
 	"context"
 	"fmt"
-	"log"
 	"maps"
 	"strings"
 )
@@ -59,19 +58,35 @@ func Route(ctx context.Context, root Application, input []string) (RouteResult, 
 	result := RouteResult{
 		Flags: map[string]Flag{},
 	}
+	flagDefs := map[string]FlagDef{}
+	flagList := listFlagDefs(root, true)
+	for _, flag := range flagList {
+		name := strings.ToLower(flag.Name)
+		_, ok := flagDefs[name]
+		if ok {
+			return result, DuplicateFlagNameError(name)
+		}
+		flagDefs[name] = flag
+		for _, alias := range flag.Aliases {
+			alias = strings.ToLower(alias)
+			_, ok := flagDefs[alias]
+			if ok {
+				return result, DuplicateFlagNameError(alias)
+			}
+			flagDefs[alias] = flag
+		}
+	}
 	var cmdPath []Command
-	parsed, err := parse(ctx, root, input, false)
+	parsed, err := parse(ctx, root, input, flagDefs, false)
 	if err != nil {
 		return result, err
 	}
 	maps.Copy(result.Flags, parsed.flags)
 	result.Args = append(result.Args, parsed.args...)
-	log.Println(result.Flags, parsed.flags)
-	log.Println(parsed.unparsed)
 	for parsed.subcommand != nil {
 		result.Command = *parsed.subcommand
 		cmdPath = append(cmdPath, *parsed.subcommand)
-		parsed, err = parse(ctx, parsed.subcommand, parsed.unparsed, result.Command.AllowNonFlagFlags)
+		parsed, err = parse(ctx, parsed.subcommand, parsed.unparsed, flagDefs, result.Command.AllowNonFlagFlags)
 		if err != nil {
 			return result, err
 		}
