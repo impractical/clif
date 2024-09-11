@@ -3,7 +3,6 @@ package clif
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -99,7 +98,6 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 			arg = strings.ToLower(argument)
 			flagDef, ok := flagDefs[arg]
 			if ok {
-				log.Println("found flag", arg)
 				// if we've declared another flag but there's an open
 				// flag definition, it has no value, close it
 				if openFlagDef != nil {
@@ -205,7 +203,6 @@ func parse(ctx context.Context, root parseable, args []string, flagDefs map[stri
 		// if we don't accept args and have an open flag definition,
 		// assume this is the flag's value.
 		if !root.argsAccepted() {
-			log.Println("found argument for", openFlagArg, arg)
 			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
 			if err != nil {
 				return res, err
