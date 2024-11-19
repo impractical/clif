@@ -2,7 +2,10 @@ package clif
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
+	"regexp"
 	"strings"
 )
 
@@ -52,209 +55,246 @@ type Command struct {
 	Handler HandlerBuilder
 
 	// ArgsAccepted indicates whether free input is expected as part of
-	// this command, separate from flag values and subcommands.
+	// this command. If true, this command cannot have any subcommands.
 	ArgsAccepted bool
-
-	// AllowNonFlagFlags controls whether things that aren't flags (like
-	// flag values, subcommands, and arguments) can start with --. If
-	// false, we'll throw an error when we encounter an -- that doesn't
-	// have a FlagDef for it on this command or any of its subcommands. If
-	// true, we'll allow it, using it either as a flag value, subcommand,
-	// or argument, whichever is allowed. If none are allowed, it will
-	// still throw an invalid flag error.
-	AllowNonFlagFlags bool
 }
 
-func (cmd Command) argsAccepted() bool     { return cmd.ArgsAccepted }
-func (cmd Command) subcommands() []Command { return cmd.Subcommands }
-func (cmd Command) flags() []FlagDef       { return cmd.Flags }
-
-type parsedCommand struct {
-	subcommand *Command
-	flags      map[string]Flag
-	args       []string
-	unparsed   []string
+// Validate determines whether a [Command] has a valid definition or not.
+func (cmd Command) Validate(ctx context.Context, path []string, parentFlags map[string]struct{}) error {
+	var errs error
+	parentPath := path
+	if len(path) > 0 {
+		parentPath = path[:len(path)-1]
+	}
+	errs = errors.Join(errs, validateCommandName(cmd.Name, append(parentPath, cmd.Name), false))
+	for _, alias := range cmd.Aliases {
+		errs = errors.Join(errs, validateCommandName(alias, append(parentPath, alias), false))
+	}
+	if len(cmd.Subcommands) < 1 && cmd.Handler == nil {
+		errs = errors.Join(errs, CommandMissingSubcommandsOrHandlerError{Path: path})
+	}
+	if len(cmd.Subcommands) > 0 && cmd.ArgsAccepted {
+		errs = errors.Join(errs, CommandAcceptsArgumentsAndSubcommandsError{Path: path})
+	}
+	flagKeys := maps.Clone(parentFlags)
+	for _, flagDef := range cmd.Flags {
+		if _, ok := flagKeys[flagDef.Name]; ok {
+			errs = errors.Join(errs, DuplicateFlagNameError(flagDef.Name))
+		}
+		flagKeys[flagDef.Name] = struct{}{}
+		for _, alias := range flagDef.Aliases {
+			if _, ok := flagKeys[alias]; ok {
+				errs = errors.Join(errs, DuplicateFlagNameError(alias))
+			}
+			flagKeys[alias] = struct{}{}
+		}
+		errs = errors.Join(errs, flagDef.Validate(ctx, path))
+	}
+	subNames := map[string]struct{}{}
+	for pos, sub := range cmd.Subcommands {
+		if sub.Name == "" {
+			errs = errors.Join(errs, CommandMissingNameError{
+				Path: path,
+				Pos:  pos,
+			})
+			continue
+		}
+		if _, ok := subNames[sub.Name]; ok {
+			errs = errors.Join(errs, DuplicateCommandError{Path: path, Command: sub.Name})
+		}
+		for _, alias := range sub.Aliases {
+			if alias == "" {
+				errs = errors.Join(errs, CommandAliasEmptyError{Path: path, Command: sub.Name})
+			} else if alias == sub.Name {
+				errs = errors.Join(errs, CommandDuplicatesNameAsAliasError{Path: path, Command: sub.Name})
+			} else if _, ok := subNames[alias]; ok {
+				errs = errors.Join(errs, DuplicateCommandError{Path: path, Command: alias})
+			}
+		}
+		errs = errors.Join(errs, sub.Validate(ctx, append(path, sub.Name), flagKeys))
+	}
+	return errs
 }
 
-func parse(ctx context.Context, root parseable, args []string, allowNonFlagFlags bool) (parsedCommand, error) {
-	res := parsedCommand{
-		flags: map[string]Flag{},
-	}
-	if len(args) < 1 {
-		return res, nil
-	}
-	allFlags := map[string]FlagDef{}
-	flagList := listFlagDefs(root, true)
-	for _, flag := range flagList {
-		name := strings.ToLower(flag.Name)
-		_, ok := allFlags[name]
-		if ok {
-			return res, DuplicateFlagNameError(name)
-		}
-		allFlags[name] = flag
-		for _, alias := range flag.Aliases {
-			alias = strings.ToLower(alias)
-			_, ok := allFlags[alias]
-			if ok {
-				return res, DuplicateFlagNameError(alias)
-			}
-			allFlags[alias] = flag
+var (
+	commandNameRE = regexp.MustCompile(`^[a-zA-Z0-9-_:]+$`)
+)
+
+func validateCommandName(name string, path []string, alias bool) error {
+	if name[0] == '-' {
+		return InvalidCommandNameError{
+			Name:  name,
+			Path:  path,
+			Alias: alias,
 		}
 	}
-	var openFlagDef *FlagDef
-	var openFlagArg string
-	for pos, arg := range args {
-		// if this argument matches a flag definition we're expecting,
-		// let's assume it's that flag definition. In theory it could
-		// be the argument to the open flag definition and just
-		// coincidentally match, or it could be an argument to the
-		// command or one of its subcommands, but it's probably fair to
-		// ask consumers to not allow that confusion to exist.
-		if strings.HasPrefix(arg, "--") {
-			trimmed := strings.TrimPrefix(arg, "--")
-			argument, value, hasValue := strings.Cut(trimmed, "=")
-			arg = strings.ToLower(argument)
-			flagDef, ok := allFlags[arg]
-			if ok {
-				// if we've declared another flag but there's an open
-				// flag definition, it has no value, close it
-				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
-					if err != nil {
-						return res, err
-					}
-					res.flags[flag.GetName()] = flag
-					openFlagDef = nil
-					openFlagArg = ""
-				}
-
-				// if the flag definition doesn't accept values
-				// but we have a key=value argument for that
-				// flag, this isn't a valid invocation
-				if !flagDef.ValueAccepted && hasValue {
-					return res, UnexpectedFlagValueError{Flag: arg, Value: value}
-				}
-
-				// if this flag doesn't accept values, or we
-				// already have the value, parse it and we're
-				// done with this argument
-				if !flagDef.ValueAccepted || hasValue {
-					// TODO: for flags that can be specified multiple times, we need to pass in the existing value so it can be modified
-					flag, err := flagDef.Parser.Parse(ctx, arg, value, res.flags[arg])
-					if err != nil {
-						return res, err
-					}
-					res.flags[flag.GetName()] = flag
-					continue
-				}
-
-				// if this flag doesn't have a value yet, it's
-				// an open flag value. Move on to the next arg,
-				// which may be this flag's value.
-				if !hasValue {
-					// we have a flag that accepts a value but
-					// there isn't one in this arg. The next arg
-					// must be the value
-					openFlagDef = &flagDef
-					openFlagArg = arg
-					continue
-				}
-			} else if !allowNonFlagFlags {
-				// if it doesn't match one of our flag definitions and
-				// we don't allow that, it's an error
-				return res, UnknownFlagNameError(arg)
-			}
-		}
-
-		lowerArg := strings.ToLower(arg)
-
-		// this is now either the optional value to the open flag
-		// definition (if there is one), a subcommand, or an argument
-		// to the command.
-
-		// let's eliminate subcommand as a possibility, because that's
-		// a pretty closed set.
-		for _, sub := range root.subcommands() {
-			var match bool
-			if lowerArg == strings.ToLower(sub.Name) {
-				match = true
-			} else {
-				for _, alias := range sub.Aliases {
-					if lowerArg == strings.ToLower(alias) {
-						match = true
-						break
-					}
-				}
-			}
-			if match {
-				// if there's still an open flag definition, it
-				// has no value, we have a subcommand instead.
-				//
-				// in theory, if a flag's value was the same as
-				// a valid subcommand, this would confuse the
-				// flag's value for the subcommand. But it
-				// seems reasonable to expect consumers to not
-				// allow that confusion.
-				if openFlagDef != nil {
-					flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, "", res.flags[openFlagArg])
-					if err != nil {
-						return res, err
-					}
-					res.flags[flag.GetName()] = flag
-				}
-				res.subcommand = &sub
-				if len(args) > pos+1 {
-					res.unparsed = args[pos+1:]
-				}
-				return res, nil
-			}
-		}
-
-		// this is either an optional value to the open flag definition
-		// (if there is one) or an argument to the command. If we don't
-		// have an open flag definition and don't accept args, this
-		// isn't a valid invocation.
-		if !root.argsAccepted() && openFlagDef == nil {
-			return res, UnexpectedCommandArgError(arg)
-		}
-
-		// if we don't accept args and have an open flag definition,
-		// assume this is the flag's value.
-		if !root.argsAccepted() {
-			flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
-			if err != nil {
-				return res, err
-			}
-			res.flags[flag.GetName()] = flag
-			openFlagDef = nil
-			openFlagArg = ""
-			continue
-		}
-
-		// if we don't have an open flag definition, assume this is an
-		// argument to the command
-		if openFlagDef == nil {
-			res.args = append(res.args, arg)
-			continue
-		}
-
-		// we have an open flag definition and we accept arguments.
-		// This could be either. Let's assume, if this is the last
-		// argument, that it's a command argument. Otherwise, we're
-		// assuming it's a flag value.
-		if pos == len(args)-1 {
-			res.args = append(res.args, arg)
-			continue
-		}
-
-		flag, err := openFlagDef.Parser.Parse(ctx, openFlagArg, arg, res.flags[openFlagArg])
-		if err != nil {
-			return res, err
-		}
-		res.flags[flag.GetName()] = flag
-		openFlagDef = nil
-		openFlagArg = ""
-		continue
+	if commandNameRE.MatchString(name) {
+		return nil
 	}
-	return res, nil
+	return InvalidCommandNameError{
+		Name:  name,
+		Path:  path,
+		Alias: alias,
+	}
+}
+
+// CommandMissingNameError is returned when a [Command], either defined on
+// [Application.Commands] or [Command.Subcommands], doesn't have its Name
+// property set.
+type CommandMissingNameError struct {
+	// Pos is the position of the Command in Application.Commands or
+	// Command.Subcommands without a Name property set. Because there's no
+	// Name property, we have no other way to indicate which Command we're
+	// talking about.
+	Pos int
+
+	// Path is the list of Commands that were traversed to get to the
+	// Command that's missing a Name. An empty slice indicates the Command
+	// is defined in Application.Commands. Otherwise, the Command is
+	// defined in the Subcommands property of the last Command in the
+	// slice.
+	Path []string
+}
+
+func (err CommandMissingNameError) Error() string {
+	commandOrSubcommand := "command"
+	// this kind of error is returned from the parent validator, not the
+	// command's validator, so the command won't be in the path yet
+	if len(err.Path) > 0 {
+		commandOrSubcommand = fmt.Sprintf("subcommand of %q", strings.Join(err.Path, " "))
+	}
+	return fmt.Sprintf("%s defined in position %d is missing a name", commandOrSubcommand, err.Pos)
+}
+
+// CommandMissingSubcommandsOrHandlerError is returned when a [Command] has no
+// Subcommands or Handler set, meaning it can't do anything, which is invalid.
+type CommandMissingSubcommandsOrHandlerError struct {
+	// Path indicates that parents, if any, of the Command with no
+	// Subcommands or Handler defined. The Command in question will be the
+	// last entry in the slice.
+	Path []string
+}
+
+func (err CommandMissingSubcommandsOrHandlerError) Error() string {
+	return fmt.Sprintf("%q must define either subcommands or a handler", strings.Join(err.Path, " "))
+}
+
+// CommandAcceptsArgumentsAndSubcommandsError is returned when a [Command] is
+// defined that accepts both arguments and subcommands, which is invalid. A
+// [Command] may only accept one.
+type CommandAcceptsArgumentsAndSubcommandsError struct {
+	// Path indicates that parents, if any, of the Command that accepts
+	// both arguments and subcommands. The Command in question will be the
+	// last entry in the slice.
+	Path []string
+}
+
+func (err CommandAcceptsArgumentsAndSubcommandsError) Error() string {
+	return fmt.Sprintf("%q must accept either subcommands or arguments, it cannot accept both", strings.Join(err.Path, " "))
+}
+
+// DuplicateCommandError is returned when a [Command] is defined in the an
+// [Application.Commands] or [Command.Subcommands] that already uses the
+// [Command.Name] or one of the [Command.Aliases] for another [Command].
+// [Command.Name] and [Command.Aliases] must be unique within their parent.
+type DuplicateCommandError struct {
+	// Path is the list of parents, if any, of the Commands that have
+	// reused the same name or alias. If empty, this indicates that
+	// Application.Commands are in conflict; otherwise, the last element in
+	// the slice is the Command containing the conflicting Commands.
+	Path []string
+
+	// Command is the name that has been reused.
+	Command string
+}
+
+func (err DuplicateCommandError) Error() string {
+	commandOrSubcommand := "commands"
+	if len(err.Path) > 0 {
+		commandOrSubcommand = fmt.Sprintf("subcommands of %s", strings.Join(err.Path, " "))
+	}
+	return fmt.Sprintf("multiple %s defined using the name or alias %q", commandOrSubcommand, err.Command)
+}
+
+// CommandAliasEmptyError is returned when the [Command.Alias] property
+// includes an empty string, which is invalid.
+type CommandAliasEmptyError struct {
+	// Path is the list of parents, if any, of the Command with an empty
+	// string in the Aliases slice. If empty, this indicates the Command is
+	// in Application.Commands.
+	Path []string
+
+	// Command is the name of the Command with an empty string in its
+	// Aliases list.
+	Command string
+}
+
+func (err CommandAliasEmptyError) Error() string {
+	commandOrSubcommand := fmt.Sprintf("command %q", err.Command)
+	if len(err.Path) > 0 {
+		commandOrSubcommand = fmt.Sprintf("subcommand %q of %s", err.Command, strings.Join(err.Path, " "))
+	}
+	return fmt.Sprintf("%s has an empty string defined as an alias, which is invalid", commandOrSubcommand)
+}
+
+// CommandDuplicatesNameAsAliasError is returned when a [Command] has the same
+// value used in its Name property in its Aliases property, which is invalid.
+type CommandDuplicatesNameAsAliasError struct {
+	// Path indicates the parents, if any, of the Command that duplicated
+	// its Name property into its Aliases property. If Path is empty, that
+	// indicates the Command is defined in Application.Commands. Otherwise,
+	// the Command is defined in the Subcommands property of the Command
+	// named by the last element of the slice.
+	Path []string
+
+	// Command is the name that was included as both a Name and in the
+	// Aliases.
+	Command string
+}
+
+func (err CommandDuplicatesNameAsAliasError) Error() string {
+	commandOrSubcommand := fmt.Sprintf("command %q", err.Command)
+	if len(err.Path) > 0 {
+		commandOrSubcommand = fmt.Sprintf("subcommand %q of %q", err.Command, strings.Join(err.Path, " "))
+	}
+	return fmt.Sprintf("%s lists its own name as an alias, which is invalid", commandOrSubcommand)
+}
+
+// UnknownCommandError is returned when an invocation asks for a [Command] that
+// has not been defined.
+type UnknownCommandError struct {
+	// Path is the list of commands that were invoked, with the Command
+	// that has not been defined as the last element of the slice.
+	Path []string
+}
+
+func (err UnknownCommandError) Error() string {
+	return fmt.Sprintf("%q is not a valid command", strings.Join(err.Path, " "))
+}
+
+// InvalidCommandNameError is returned when a [Command] is defined with a Name
+// or an Aliases key that is not a valid Command name.
+type InvalidCommandNameError struct {
+	// Name is the name or alias that's invalid.
+	Name string
+
+	// Path is list of parents, if any, that lead to the invalid Command,
+	// including the invalid name.
+	Path []string
+
+	// Alias is set to true if the invalid name is defined in
+	// Command.Aliases; if false, it's the Command.Name.
+	Alias bool
+}
+
+func (err InvalidCommandNameError) Error() string {
+	path := fmt.Sprintf("%q", err.Name)
+	description := "defined at"
+	if err.Alias {
+		description = "alias of"
+	}
+	if len(err.Path) > 0 {
+		path = fmt.Sprintf("%s (%s %s)", path, description, strings.Join(err.Path, " "))
+	}
+	return fmt.Sprintf("%s is not a valid command name, commands must contain only letters, numbers, -, _, and :, and cannot start with -", path)
 }

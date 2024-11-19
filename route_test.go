@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"impractical.co/clif"
-	"impractical.co/clif/flagtypes"
 )
 
 func TestRoute(t *testing.T) {
@@ -16,7 +15,7 @@ func TestRoute(t *testing.T) {
 		app             clif.Application
 		input           []string
 		expectedCmdName string
-		expectedFlags   map[string]clif.Flag
+		expectedFlags   clif.FlagSet
 		expectedArgs    []string
 		expectedErr     error
 	}
@@ -24,16 +23,20 @@ func TestRoute(t *testing.T) {
 	cases := map[string]testCase{
 		"basic": {
 			input:           []string{"help"},
-			app:             clif.Application{Commands: []clif.Command{{Name: "help"}}},
+			app:             clif.Application{Commands: []clif.Command{{Name: "help", Handler: funcCommandHandler(func(_ context.Context, _ *clif.Response) {})}}},
 			expectedCmdName: "help",
-			expectedFlags:   map[string]clif.Flag{},
+			expectedFlags:   clif.FlagSet{},
 		},
 		"list-flags": {
 			input:           []string{"hello", "--name=foo", "--name", "bar", "--name", "baaz"},
-			app:             clif.Application{Commands: []clif.Command{{Name: "hello", Flags: []clif.FlagDef{{Name: "name", ValueAccepted: true, Parser: flagtypes.StringListParser{}}}}}},
+			app:             clif.Application{Commands: []clif.Command{{Name: "hello", Flags: []clif.FlagDef{{Name: "--name", AllowMultiple: true}}, Handler: funcCommandHandler(func(_ context.Context, _ *clif.Response) {})}}},
 			expectedCmdName: "hello",
-			expectedFlags: map[string]clif.Flag{
-				"name": flagtypes.ListFlag[string]{Name: "name", RawValue: "foo, bar, baaz", Value: []string{"foo", "bar", "baaz"}},
+			expectedFlags: clif.FlagSet{
+				"name": {
+					{Set: true, Raw: "foo"},
+					{Set: true, Raw: "bar"},
+					{Set: true, Raw: "baaz"},
+				},
 			},
 		},
 	}

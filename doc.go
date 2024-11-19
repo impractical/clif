@@ -4,8 +4,8 @@
 // that apply to all commands and the different Commands that the application
 // accepts.
 //
-// Each flag is defined by a [FlagDef], which describes the flag name and how
-// to parse it.
+// Each flag is defined by a [FlagDef], which describes the flag name and any
+// constraints on it.
 //
 // Each [Command] describes the command name, any subcommands and flags it
 // accepts, and other information about parsing the command and how to execute
@@ -13,9 +13,9 @@
 //
 // Once input is matched to the [Command], it calls the [HandlerBuilder]
 // associated with that [Command]. The [HandlerBuilder] is responsible for
-// turning flags, arguments, and a [Command] into a [Handler]. It's separated
-// out from the [Handler] so the business logic of the [Handler] can be
-// separated out from the logic to parse the flags and arguments.
+// turning flags and arguments into a [Handler]. It's separated out from the
+// [Handler] so the business logic of the [Handler] can be separated out from
+// the logic to parse the flags and arguments.
 //
 // Finally, once we have a [Handler], it gets executed, with a [Response] to
 // write output to and record the desired exit code of the command.

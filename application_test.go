@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"impractical.co/clif"
-	"impractical.co/clif/flagtypes"
 )
 
 type funcCommandHandler func(ctx context.Context, resp *clif.Response)
 
-func (f funcCommandHandler) Build(_ context.Context, _ map[string]clif.Flag, _ []string, _ *clif.Response) clif.Handler { //nolint:ireturn // filling an interface
+func (f funcCommandHandler) Build(_ context.Context, _ clif.FlagSet, _ []string, _ *clif.Response) clif.Handler { //nolint:ireturn // filling an interface
 	return f
 }
 
@@ -19,12 +18,12 @@ func (f funcCommandHandler) Handle(ctx context.Context, resp *clif.Response) {
 }
 
 type flagCommandHandler struct {
-	flags map[string]clif.Flag
+	flags clif.FlagSet
 	args  []string
-	f     func(ctx context.Context, flags map[string]clif.Flag, args []string, resp *clif.Response)
+	f     func(ctx context.Context, flags clif.FlagSet, args []string, resp *clif.Response)
 }
 
-func (f flagCommandHandler) Build(_ context.Context, flags map[string]clif.Flag, args []string, _ *clif.Response) clif.Handler { //nolint:ireturn // filling an interface
+func (f flagCommandHandler) Build(_ context.Context, flags clif.FlagSet, args []string, _ *clif.Response) clif.Handler { //nolint:ireturn // filling an interface
 	f.flags = flags
 	f.args = args
 	return f
@@ -52,14 +51,11 @@ func ExampleApplication() {
 						Name: "bar",
 						Flags: []clif.FlagDef{
 							{
-								Name:                 "quux",
-								ValueAccepted:        true,
-								OnlyAfterCommandName: false,
-								Parser:               flagtypes.StringParser{},
+								Name: "--quux",
 							},
 						},
 						Handler: flagCommandHandler{
-							f: func(_ context.Context, flags map[string]clif.Flag, args []string, resp *clif.Response) {
+							f: func(_ context.Context, flags clif.FlagSet, args []string, resp *clif.Response) {
 								fmt.Fprintln(resp.Output, flags, args)
 							},
 						},
@@ -69,8 +65,8 @@ func ExampleApplication() {
 		},
 		Flags: []clif.FlagDef{
 			{
-				Name:   "baaz",
-				Parser: flagtypes.BoolParser{},
+				Name:     "--baaz",
+				IsToggle: true,
 			},
 		},
 	}
@@ -93,18 +89,18 @@ func ExampleApplication() {
 	// output:
 	// this is help information
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[quux:{quux hello hello}] []
+	// map[quux:[{true hello}]] []
 	// 0
-	// map[baaz:{baaz  true} quux:{quux hello hello}] []
+	// map[baaz:[{false }] quux:[{true hello}]] []
 	// 0
 }
