@@ -2,9 +2,16 @@ package clif
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
+)
+
+var (
+	// ErrAppHasNoCommands is returned when an application does not define
+	// any commands, which is invalid.
+	ErrAppHasNoCommands = errors.New("application does not define any commands")
 )
 
 // Application is the root definition of a CLI.
@@ -15,11 +22,9 @@ type Application struct {
 	// Flags are the definitions for any global flags the application
 	// supports.
 	Flags []FlagDef
-}
 
-func (Application) argsAccepted() bool         { return false }
-func (app Application) subcommands() []Command { return app.Commands }
-func (app Application) flags() []FlagDef       { return app.Flags }
+	Handler HandlerBuilder
+}
 
 // Run executes the invoked command. It routes the input to the appropriate
 // [Command], parses it with the [HandlerBuilder], and executes the [Handler].
@@ -61,4 +66,45 @@ func (app Application) Run(ctx context.Context, opts ...RunOption) int {
 	// Handle executes the handler
 	handler.Handle(ctx, resp)
 	return resp.Code
+}
+
+// Validate determines whether an [Application] has a valid definition or not.
+func (app Application) Validate(ctx context.Context) error {
+	var errs error
+	if len(app.Commands) < 1 {
+		errs = errors.Join(errs, ErrAppHasNoCommands)
+	}
+	flagKeys := map[string]struct{}{}
+	for _, flagDef := range app.Flags {
+		if _, ok := flagKeys[flagDef.Name]; ok {
+			errs = errors.Join(errs, DuplicateFlagNameError(flagDef.Name))
+		}
+		flagKeys[flagDef.Name] = struct{}{}
+		for _, alias := range flagDef.Aliases {
+			if _, ok := flagKeys[alias]; ok {
+				errs = errors.Join(errs, DuplicateFlagNameError(alias))
+			}
+		}
+	}
+	cmdNames := map[string]struct{}{}
+	for pos, cmd := range app.Commands {
+		if cmd.Name == "" {
+			errs = errors.Join(errs, CommandMissingNameError{Path: []string{}, Pos: pos})
+			continue
+		}
+		if _, ok := cmdNames[cmd.Name]; ok {
+			errs = errors.Join(errs, DuplicateCommandError{Path: []string{}, Command: cmd.Name})
+		}
+		for _, alias := range cmd.Aliases {
+			if alias == "" {
+				errs = errors.Join(errs, CommandAliasEmptyError{Path: []string{}, Command: cmd.Name})
+			} else if alias == cmd.Name {
+				errs = errors.Join(errs, CommandDuplicatesNameAsAliasError{Path: []string{}, Command: cmd.Name})
+			} else if _, ok := cmdNames[alias]; ok {
+				errs = errors.Join(errs, DuplicateCommandError{Path: []string{}, Command: alias})
+			}
+		}
+		errs = errors.Join(errs, cmd.Validate(ctx, []string{cmd.Name}, flagKeys))
+	}
+	return errs
 }

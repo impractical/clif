@@ -14,10 +14,10 @@ type Handler interface {
 }
 
 // HandlerBuilder is an interface that should wrap a [Handler]. It parses the
-// passed Flags and args into a [Handler], to separate out the parsing logic
+// passed [Flags] and args into a [Handler], to separate out the parsing logic
 // from the business logic.
 type HandlerBuilder interface {
-	// Build creates a Handler by parsing the Flags and args into the
+	// Build creates a Handler by parsing the flags and args into the
 	// appropriate handler type.
-	Build(ctx context.Context, flags map[string]Flag, args []string, resp *Response) Handler
+	Build(ctx context.Context, flags FlagSet, args []string, resp *Response) Handler
 }
