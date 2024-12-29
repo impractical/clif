@@ -20,29 +20,29 @@ func TestNewValueFromUint_success(t *testing.T) {
 	}
 	testCases := map[string]testCase{
 		// uint
-		"uint/0":        {input: FlagValue{Set: true, Raw: "0"}, expected: uint64(0), target: uint(0)},
-		"uint/1":        {input: FlagValue{Set: true, Raw: "1"}, expected: uint64(1), target: uint(0)},
-		"uint/max-uint": {input: FlagValue{Set: true, Raw: strconv.FormatUint(uint64(math.MaxUint), 10)}, expected: math.MaxUint, target: uint(0)},
+		"uint/0":        {input: FlagValue{HasValue: true, Raw: "0"}, expected: uint64(0), target: uint(0)},
+		"uint/1":        {input: FlagValue{HasValue: true, Raw: "1"}, expected: uint64(1), target: uint(0)},
+		"uint/max-uint": {input: FlagValue{HasValue: true, Raw: strconv.FormatUint(uint64(math.MaxUint), 10)}, expected: math.MaxUint, target: uint(0)},
 
 		// uint8
-		"uint8/0":        {input: FlagValue{Set: true, Raw: "0"}, expected: uint64(0), target: uint8(0)},
-		"uint8/1":        {input: FlagValue{Set: true, Raw: "1"}, expected: uint64(1), target: uint8(0)},
-		"uint8/max-uint": {input: FlagValue{Set: true, Raw: strconv.FormatUint(uint64(math.MaxUint8), 10)}, expected: math.MaxUint8, target: uint8(0)},
+		"uint8/0":        {input: FlagValue{HasValue: true, Raw: "0"}, expected: uint64(0), target: uint8(0)},
+		"uint8/1":        {input: FlagValue{HasValue: true, Raw: "1"}, expected: uint64(1), target: uint8(0)},
+		"uint8/max-uint": {input: FlagValue{HasValue: true, Raw: strconv.FormatUint(uint64(math.MaxUint8), 10)}, expected: math.MaxUint8, target: uint8(0)},
 
 		// uint16
-		"uint16/0":        {input: FlagValue{Set: true, Raw: "0"}, expected: uint64(0), target: uint16(0)},
-		"uint16/1":        {input: FlagValue{Set: true, Raw: "1"}, expected: uint64(1), target: uint16(0)},
-		"uint16/max-uint": {input: FlagValue{Set: true, Raw: strconv.FormatUint(uint64(math.MaxUint16), 10)}, expected: math.MaxUint16, target: uint16(0)},
+		"uint16/0":        {input: FlagValue{HasValue: true, Raw: "0"}, expected: uint64(0), target: uint16(0)},
+		"uint16/1":        {input: FlagValue{HasValue: true, Raw: "1"}, expected: uint64(1), target: uint16(0)},
+		"uint16/max-uint": {input: FlagValue{HasValue: true, Raw: strconv.FormatUint(uint64(math.MaxUint16), 10)}, expected: math.MaxUint16, target: uint16(0)},
 
 		// uint32
-		"uint32/0":        {input: FlagValue{Set: true, Raw: "0"}, expected: uint64(0), target: uint32(0)},
-		"uint32/1":        {input: FlagValue{Set: true, Raw: "1"}, expected: uint64(1), target: uint32(0)},
-		"uint32/max-uint": {input: FlagValue{Set: true, Raw: strconv.FormatUint(uint64(math.MaxUint32), 10)}, expected: math.MaxUint32, target: uint32(0)},
+		"uint32/0":        {input: FlagValue{HasValue: true, Raw: "0"}, expected: uint64(0), target: uint32(0)},
+		"uint32/1":        {input: FlagValue{HasValue: true, Raw: "1"}, expected: uint64(1), target: uint32(0)},
+		"uint32/max-uint": {input: FlagValue{HasValue: true, Raw: strconv.FormatUint(uint64(math.MaxUint32), 10)}, expected: math.MaxUint32, target: uint32(0)},
 
 		// uint64
-		"uint64/0":        {input: FlagValue{Set: true, Raw: "0"}, expected: uint64(0), target: uint64(0)},
-		"uint64/1":        {input: FlagValue{Set: true, Raw: "1"}, expected: uint64(1), target: uint64(0)},
-		"uint64/max-uint": {input: FlagValue{Set: true, Raw: strconv.FormatUint(uint64(math.MaxUint64), 10)}, expected: math.MaxUint64, target: uint64(0)},
+		"uint64/0":        {input: FlagValue{HasValue: true, Raw: "0"}, expected: uint64(0), target: uint64(0)},
+		"uint64/1":        {input: FlagValue{HasValue: true, Raw: "1"}, expected: uint64(1), target: uint64(0)},
+		"uint64/max-uint": {input: FlagValue{HasValue: true, Raw: strconv.FormatUint(uint64(math.MaxUint64), 10)}, expected: math.MaxUint64, target: uint64(0)},
 	}
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -79,7 +79,7 @@ func TestNewValueFromUint_error_syntax(t *testing.T) {
 			ctx := context.Background()
 
 			var target uint
-			_, err := newValueFromUint(ctx, FlagValue{Set: true, Raw: input}, reflect.ValueOf(target))
+			_, err := newValueFromUint(ctx, FlagValue{HasValue: true, Raw: input}, reflect.ValueOf(target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}
@@ -131,7 +131,7 @@ func TestNewValueFromUint_error_overflow(t *testing.T) {
 
 			ctx := context.Background()
 
-			_, err := newValueFromUint(ctx, FlagValue{Set: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
+			_, err := newValueFromUint(ctx, FlagValue{HasValue: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}

@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/google/go-cmp v0.7.0
 	github.com/markusmobius/go-dateparser v1.2.3
+	github.com/mitchellh/go-wordwrap v1.0.1
 )
 
 require (

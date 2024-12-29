@@ -10,7 +10,7 @@ import (
 
 func newValueFromTime(_ context.Context, flag FlagValue, target reflect.Value) (reflect.Value, error) {
 	value := time.Time{}
-	if flag.Set {
+	if flag.HasValue {
 		parsed, err := dateparser.Parse(nil, flag.Raw)
 		if err != nil {
 			return target, err

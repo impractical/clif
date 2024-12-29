@@ -33,13 +33,26 @@ type Command struct {
 	Aliases []string
 
 	// Description is a short, one-line description of the command, used
-	// when generating the SubcommandsHelp output.
+	// when generating help output.
 	Description string
+
+	// DetailedDescription is one or more paragraphs describing the
+	// command, what it does, and what it's used for. Used when generating
+	// help output.
+	DetailedDescription string
+
+	// UsageExample is an example of how the command is meant to be used,
+	// displayed as part of help output.
+	UsageExample string
 
 	// Hidden indicates whether a command should be included in
 	// SubcommandsHelp output or not. If set to true, the command will be
 	// omitted from SubcommandsHelp output.
 	Hidden bool
+
+	// ArgsAccepted indicates whether free input is expected as part of
+	// this command. If true, this command cannot have any subcommands.
+	ArgsAccepted bool
 
 	// Flags holds definitions for the flags, if any, that this command
 	// accepts.
@@ -54,9 +67,18 @@ type Command struct {
 	// used.
 	Handler HandlerBuilder
 
-	// ArgsAccepted indicates whether free input is expected as part of
-	// this command. If true, this command cannot have any subcommands.
-	ArgsAccepted bool
+	// Middleware holds the middleware to run before executing the Command.
+	// If any return false, the Handler will not be run. The
+	// context.Context and *Response passed to the middleware will also be
+	// passed to the HandlerBuilder and Handler; everything else is not
+	// guaranteed to persist any changes the middleware makes.
+	//
+	// Middleware is largely intended to support use cases like checking
+	// for a help flag being passed and printing the help output, or other
+	// scenarios where invocation-time information (what command is being
+	// run, what flags are set) is necessary but all or many handlers
+	// should have consistent behavior.
+	Middleware []Middleware
 }
 
 // Validate determines whether a [Command] has a valid definition or not.

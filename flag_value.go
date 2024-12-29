@@ -7,14 +7,21 @@ import (
 
 // FlagValue holds the value of a flag specified at runtime.
 type FlagValue struct {
-	// Set indicates whether the flag had a value set. If false, it
+	// HasValue indicates whether the flag had a value set. If false, it
 	// indicates that the flag was used as a toggle, without a value, i.e.
 	// --flag. If true, it indicates the flag was used with a value, i.e.
 	// --flag=value or --flag value.
-	Set bool
+	HasValue bool
 
 	// Raw holds the value the flag was given, if Set is true.
 	Raw string
+
+	// Key is the key used to invoke the flag, which could be an alias.
+	Key string
+
+	// CanonicalKey is the Name of the flag in the FlagDef, the canonical
+	// way to refer to the flag.
+	CanonicalKey string
 }
 
 // As parses the value of the [FlagValue] into the target, which must be a

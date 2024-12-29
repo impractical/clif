@@ -20,23 +20,23 @@ func TestNewValueFromFloat_success(t *testing.T) {
 	}
 	testCases := map[string]testCase{
 		// float32
-		"float32/0":         {input: FlagValue{Set: true, Raw: "0"}, expected: float64(0), target: float32(0)},
-		"float32/-1":        {input: FlagValue{Set: true, Raw: "-1"}, expected: float64(-1), target: float32(0)},
-		"float32/1":         {input: FlagValue{Set: true, Raw: "1"}, expected: float64(1), target: float32(0)},
-		"float32/max-float": {input: FlagValue{Set: true, Raw: strconv.FormatFloat(float64(math.MaxFloat32), 'f', -1, 32)}, expected: math.MaxFloat32, target: float32(0)},
+		"float32/0":         {input: FlagValue{HasValue: true, Raw: "0"}, expected: float64(0), target: float32(0)},
+		"float32/-1":        {input: FlagValue{HasValue: true, Raw: "-1"}, expected: float64(-1), target: float32(0)},
+		"float32/1":         {input: FlagValue{HasValue: true, Raw: "1"}, expected: float64(1), target: float32(0)},
+		"float32/max-float": {input: FlagValue{HasValue: true, Raw: strconv.FormatFloat(float64(math.MaxFloat32), 'f', -1, 32)}, expected: math.MaxFloat32, target: float32(0)},
 
 		// float64
-		"float64/0":         {input: FlagValue{Set: true, Raw: "0"}, expected: float64(0), target: float64(0)},
-		"float64/-1":        {input: FlagValue{Set: true, Raw: "-1"}, expected: float64(-1), target: float64(0)},
-		"float64/1":         {input: FlagValue{Set: true, Raw: "1"}, expected: float64(1), target: float64(0)},
-		"float64/max-float": {input: FlagValue{Set: true, Raw: strconv.FormatFloat(float64(math.MaxFloat64), 'f', -1, 64)}, expected: math.MaxFloat64, target: float64(0)},
-		"float64/inf":       {input: FlagValue{Set: true, Raw: "inf"}, expected: math.Inf(1), target: float64(0)},
-		"float64/infinity":  {input: FlagValue{Set: true, Raw: "infinity"}, expected: math.Inf(1), target: float64(0)},
-		"float64/-inf":      {input: FlagValue{Set: true, Raw: "-inf"}, expected: math.Inf(-1), target: float64(0)},
-		"float64/-infinity": {input: FlagValue{Set: true, Raw: "-infinity"}, expected: math.Inf(-1), target: float64(0)},
-		"float64/+inf":      {input: FlagValue{Set: true, Raw: "+inf"}, expected: math.Inf(1), target: float64(0)},
-		"float64/+infinity": {input: FlagValue{Set: true, Raw: "+infinity"}, expected: math.Inf(1), target: float64(0)},
-		"float64/nan":       {input: FlagValue{Set: true, Raw: "NaN"}, expected: math.NaN(), target: float64(0)},
+		"float64/0":         {input: FlagValue{HasValue: true, Raw: "0"}, expected: float64(0), target: float64(0)},
+		"float64/-1":        {input: FlagValue{HasValue: true, Raw: "-1"}, expected: float64(-1), target: float64(0)},
+		"float64/1":         {input: FlagValue{HasValue: true, Raw: "1"}, expected: float64(1), target: float64(0)},
+		"float64/max-float": {input: FlagValue{HasValue: true, Raw: strconv.FormatFloat(float64(math.MaxFloat64), 'f', -1, 64)}, expected: math.MaxFloat64, target: float64(0)},
+		"float64/inf":       {input: FlagValue{HasValue: true, Raw: "inf"}, expected: math.Inf(1), target: float64(0)},
+		"float64/infinity":  {input: FlagValue{HasValue: true, Raw: "infinity"}, expected: math.Inf(1), target: float64(0)},
+		"float64/-inf":      {input: FlagValue{HasValue: true, Raw: "-inf"}, expected: math.Inf(-1), target: float64(0)},
+		"float64/-infinity": {input: FlagValue{HasValue: true, Raw: "-infinity"}, expected: math.Inf(-1), target: float64(0)},
+		"float64/+inf":      {input: FlagValue{HasValue: true, Raw: "+inf"}, expected: math.Inf(1), target: float64(0)},
+		"float64/+infinity": {input: FlagValue{HasValue: true, Raw: "+infinity"}, expected: math.Inf(1), target: float64(0)},
+		"float64/nan":       {input: FlagValue{HasValue: true, Raw: "NaN"}, expected: math.NaN(), target: float64(0)},
 	}
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestNewValueFromFloat_error_syntax(t *testing.T) {
 			ctx := context.Background()
 
 			var target float64
-			_, err := newValueFromFloat(ctx, FlagValue{Set: true, Raw: input}, reflect.ValueOf(target))
+			_, err := newValueFromFloat(ctx, FlagValue{HasValue: true, Raw: input}, reflect.ValueOf(target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}
@@ -120,7 +120,7 @@ func TestNewValueFromFloat_error_overflow(t *testing.T) {
 
 			ctx := context.Background()
 
-			_, err := newValueFromFloat(ctx, FlagValue{Set: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
+			_, err := newValueFromFloat(ctx, FlagValue{HasValue: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}

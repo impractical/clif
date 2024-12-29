@@ -12,14 +12,16 @@ import (
 type FlagDef struct {
 	// Name is the name of the flag. It's what will be surfaced in
 	// documentation and what the user will use when applying the flag to a
-	// command. Names must be unique across all commands, or the parser
-	// won't know which command to apply the flag to.
+	// command. Names must be unique across the command and all parent or
+	// child commands, or the parser won't know which command to apply the
+	// flag to.
 	Name string
 
 	// Aliases holds any alternative names the flag should accept from the
 	// user. Aliases are not surfaced in documentation, by default. Aliases
-	// must be unique across all other aliases and names for all commands,
-	// or the parser won't know which command to apply the flag to.
+	// must be unique across all other aliases and names for the command
+	// and all parent or child commands, or the parser won't know which
+	// command to apply the flag to.
 	Aliases []string
 
 	// Description is a user-friendly description of what the flag does and

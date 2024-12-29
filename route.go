@@ -10,10 +10,23 @@ import (
 // [FlagSet] and arguments to pass to it, based on the parsing done by
 // [Route].
 type RouteResult struct {
-	// Command is the Command that Route believes should be run.
-	Command Command
+	// Command is the Command that Route believes should be run. If nil, no
+	// command was passed and the top-level Application handler should be
+	// called. A nil value does not indicate a command was specified but
+	// couldn't be found; that will be an explicit error.
+	Command *Command
+
+	// CommandPath is the list of Commands that were invoked to reach
+	// Command, including Command itself.
+	CommandPath []Command
+
 	// Flags are the flags that should be applied to that command.
 	Flags FlagSet
+
+	// DefinedFlags are the FlagDefs that are defined along the
+	// CommandPath.
+	DefinedFlags []FlagDef
+
 	// Args are the positional arguments that should be passed to that
 	// command.
 	Args []string
@@ -59,7 +72,11 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 	router := inputRouter{
 		// a stub command to start our command tree off, just the
 		// top-level subcommands of the CLI itself
-		cmd: Command{
+		cmd: &Command{
+			// give this command an invalid name so we can detect
+			// if it's still the active command after router.route
+			// runs
+			Name:        "--placeholder--",
 			Subcommands: app.Commands,
 		},
 		// gotta initialize the flags map so we don't panic on write
@@ -72,18 +89,27 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 		return RouteResult{}, err
 	}
 
+	if router.cmd != nil && router.cmd.Name == "--placeholder--" {
+		router.cmd = nil
+	}
+
 	// build a map of flags the commands we visited actually accept so we
 	// can validate the passed flags are acceptable
 	acceptedFlags := map[string]FlagDef{}
+	var cmdPath []Command
+	var resultFlagDefs []FlagDef
 	for _, def := range app.Flags {
 		acceptedFlags[def.Name] = def
+		resultFlagDefs = append(resultFlagDefs, def)
 		for _, alias := range def.Aliases {
 			acceptedFlags[alias] = def
 		}
 	}
 	for _, entry := range router.path {
+		cmdPath = append(cmdPath, entry.cmd)
 		for _, def := range entry.cmd.Flags {
 			acceptedFlags[def.Name] = def
+			resultFlagDefs = append(resultFlagDefs, def)
 			for _, alias := range def.Aliases {
 				acceptedFlags[alias] = def
 			}
@@ -100,10 +126,13 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 			// a problem
 			return RouteResult{}, UnknownFlagNameError(flag)
 		}
-		flagWithoutLeadingHypens := strings.TrimPrefix(strings.TrimPrefix(flag, "-"), "-")
+		flagWithoutLeadingHyphens := strings.TrimPrefix(strings.TrimPrefix(flag, "-"), "-")
+		nameWithoutLeadingHyphens := strings.TrimPrefix(strings.TrimPrefix(def.Name, "-"), "-")
 		for _, value := range values {
 			val := FlagValue{
-				Set: value != nil,
+				HasValue:     value != nil,
+				Key:          flagWithoutLeadingHyphens,
+				CanonicalKey: nameWithoutLeadingHyphens,
 			}
 			if value != nil {
 				// if we have a non-nil value but this flag can
@@ -120,9 +149,9 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 				// be used as a toggle, that's a problem
 				return RouteResult{}, MissingFlagValueError(flag)
 			}
-			flagValues[flagWithoutLeadingHypens] = append(flagValues[flagWithoutLeadingHypens], val)
+			flagValues[nameWithoutLeadingHyphens] = append(flagValues[nameWithoutLeadingHyphens], val)
 		}
-		if len(flagValues[flagWithoutLeadingHypens]) > 1 && !def.AllowMultiple {
+		if len(flagValues[nameWithoutLeadingHyphens]) > 1 && !def.AllowMultiple {
 			// if we have more than one value but only accept a
 			// single value, that's a problem
 			return RouteResult{}, TooManyFlagValuesError(flag)
@@ -152,8 +181,9 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 			envVal := os.Getenv(envVar)
 			if envVal != "" {
 				flagValues[keyWithoutLeadingHyphens] = append(flagValues[keyWithoutLeadingHyphens], FlagValue{
-					Set: true,
-					Raw: envVal,
+					HasValue:     true,
+					Raw:          envVal,
+					CanonicalKey: strings.TrimPrefix(strings.TrimPrefix(def.Name, "-"), "-"),
 				})
 				break
 			}
@@ -171,9 +201,11 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 	}
 
 	return RouteResult{
-		Command: router.cmd,
-		Flags:   flagValues,
-		Args:    router.args,
+		Command:      router.cmd,
+		CommandPath:  cmdPath,
+		Flags:        flagValues,
+		DefinedFlags: resultFlagDefs,
+		Args:         router.args,
 	}, nil
 }
 

@@ -19,10 +19,11 @@ type FlagSet map[string]FlagValues
 // the types supported by [FlagValues.As].
 //
 // If a pointer to a struct, the `flag` struct tag will control which fields a
-// flag key parses into. Unexported struct fields cannot be parsed into. All
-// exported struct fields must have a `flag` struct tag; use "-" as a struct
-// tag to not parse into a field. Field types can be any type supported by
-// [FlagValues.As].
+// flag key parses into. The value of the tag should be the canonical name
+// (i.e., not an alias) of the flag that should be parsed into that field.
+// Unexported struct fields cannot be parsed into. All exported struct fields
+// must have a `flag` struct tag; use "-" as a struct tag to not parse into a
+// field. Field types can be any type supported by [FlagValues.As].
 //
 // If a pointer to a type that implements [FlagSetSetter], the `SetFromFlagSet`
 // method will be called and the [FlagSet] will be passed.

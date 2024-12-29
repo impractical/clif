@@ -12,7 +12,7 @@ type commandPathEntry struct {
 }
 
 type inputRouter struct {
-	cmd    Command
+	cmd    *Command
 	flags  map[string][]*string
 	args   []string
 	path   []commandPathEntry
@@ -27,7 +27,7 @@ func (router *inputRouter) route(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			router.cmd = sub
+			router.cmd = &sub
 			router.path = append(router.path, commandPathEntry{
 				cmd:  sub,
 				name: token.value,
