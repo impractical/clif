@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"impractical.co/clif"
 )
 
@@ -33,9 +34,9 @@ func TestRoute(t *testing.T) {
 			expectedCmdName: "hello",
 			expectedFlags: clif.FlagSet{
 				"name": {
-					{Set: true, Raw: "foo"},
-					{Set: true, Raw: "bar"},
-					{Set: true, Raw: "baaz"},
+					{HasValue: true, Raw: "foo", Key: "name", CanonicalKey: "name"},
+					{HasValue: true, Raw: "bar", Key: "name", CanonicalKey: "name"},
+					{HasValue: true, Raw: "baaz", Key: "name", CanonicalKey: "name"},
 				},
 			},
 		},

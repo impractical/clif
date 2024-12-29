@@ -21,3 +21,12 @@ type HandlerBuilder interface {
 	// appropriate handler type.
 	Build(ctx context.Context, flags FlagSet, args []string, resp *Response) Handler
 }
+
+// DefInjector is an interface that a [HandlerBuilder] can optionally
+// implement. If implemented, the InjectDefs method will be called to make
+// the [DefParams] available at runtime to the [HandlerBuilder] before
+// [HandlerBuilder.Build] is called.
+type DefInjector interface {
+	HandlerBuilder
+	InjectDefs(ctx context.Context, defs DefParams, resp *Response)
+}

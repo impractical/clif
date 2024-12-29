@@ -89,18 +89,18 @@ func ExampleApplication() {
 	// output:
 	// this is help information
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[quux:[{true hello}]] []
+	// map[quux:[{true hello quux quux}]] []
 	// 0
-	// map[baaz:[{false }] quux:[{true hello}]] []
+	// map[baaz:[{false  baaz baaz}] quux:[{true hello quux quux}]] []
 	// 0
 }

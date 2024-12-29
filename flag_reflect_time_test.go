@@ -15,9 +15,9 @@ func TestNewValueFromTime_success(t *testing.T) {
 		expected time.Time
 	}
 	testCases := map[string]testCase{
-		"6 July 2020": {input: FlagValue{Set: true, Raw: "6 July 2020"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
-		"07/06/2020":  {input: FlagValue{Set: true, Raw: "07/06/2020"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
-		"07/06/20":    {input: FlagValue{Set: true, Raw: "07/06/20"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
+		"6 July 2020": {input: FlagValue{HasValue: true, Raw: "6 July 2020"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
+		"07/06/2020":  {input: FlagValue{HasValue: true, Raw: "07/06/2020"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
+		"07/06/20":    {input: FlagValue{HasValue: true, Raw: "07/06/20"}, expected: time.Date(2020, time.July, 6, 0, 0, 0, 0, time.UTC)},
 	}
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestNewValueFromTime_error(t *testing.T) {
 			ctx := context.Background()
 
 			var target bool
-			_, err := newValueFromTime(ctx, FlagValue{Set: true, Raw: input}, reflect.ValueOf(target))
+			_, err := newValueFromTime(ctx, FlagValue{HasValue: true, Raw: input}, reflect.ValueOf(target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}

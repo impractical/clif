@@ -20,39 +20,39 @@ func TestNewValueFromInt_success(t *testing.T) {
 	}
 	testCases := map[string]testCase{
 		// int
-		"int/0":       {input: FlagValue{Set: true, Raw: "0"}, expected: int64(0), target: int(0)},
-		"int/-1":      {input: FlagValue{Set: true, Raw: "-1"}, expected: int64(-1), target: int(0)},
-		"int/1":       {input: FlagValue{Set: true, Raw: "1"}, expected: int64(1), target: int(0)},
-		"int/max-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MaxInt), 10)}, expected: math.MaxInt, target: int(0)},
-		"int/min-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MinInt), 10)}, expected: math.MinInt, target: int(0)},
+		"int/0":       {input: FlagValue{HasValue: true, Raw: "0"}, expected: int64(0), target: int(0)},
+		"int/-1":      {input: FlagValue{HasValue: true, Raw: "-1"}, expected: int64(-1), target: int(0)},
+		"int/1":       {input: FlagValue{HasValue: true, Raw: "1"}, expected: int64(1), target: int(0)},
+		"int/max-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MaxInt), 10)}, expected: math.MaxInt, target: int(0)},
+		"int/min-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MinInt), 10)}, expected: math.MinInt, target: int(0)},
 
 		// int8
-		"int8/0":       {input: FlagValue{Set: true, Raw: "0"}, expected: int64(0), target: int8(0)},
-		"int8/-1":      {input: FlagValue{Set: true, Raw: "-1"}, expected: int64(-1), target: int8(0)},
-		"int8/1":       {input: FlagValue{Set: true, Raw: "1"}, expected: int64(1), target: int8(0)},
-		"int8/max-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MaxInt8), 10)}, expected: math.MaxInt8, target: int8(0)},
-		"int8/min-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MinInt8), 10)}, expected: math.MinInt8, target: int8(0)},
+		"int8/0":       {input: FlagValue{HasValue: true, Raw: "0"}, expected: int64(0), target: int8(0)},
+		"int8/-1":      {input: FlagValue{HasValue: true, Raw: "-1"}, expected: int64(-1), target: int8(0)},
+		"int8/1":       {input: FlagValue{HasValue: true, Raw: "1"}, expected: int64(1), target: int8(0)},
+		"int8/max-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MaxInt8), 10)}, expected: math.MaxInt8, target: int8(0)},
+		"int8/min-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MinInt8), 10)}, expected: math.MinInt8, target: int8(0)},
 
 		// int16
-		"int16/0":       {input: FlagValue{Set: true, Raw: "0"}, expected: int64(0), target: int16(0)},
-		"int16/-1":      {input: FlagValue{Set: true, Raw: "-1"}, expected: int64(-1), target: int16(0)},
-		"int16/1":       {input: FlagValue{Set: true, Raw: "1"}, expected: int64(1), target: int16(0)},
-		"int16/max-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MaxInt16), 10)}, expected: math.MaxInt16, target: int16(0)},
-		"int16/min-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MinInt16), 10)}, expected: math.MinInt16, target: int16(0)},
+		"int16/0":       {input: FlagValue{HasValue: true, Raw: "0"}, expected: int64(0), target: int16(0)},
+		"int16/-1":      {input: FlagValue{HasValue: true, Raw: "-1"}, expected: int64(-1), target: int16(0)},
+		"int16/1":       {input: FlagValue{HasValue: true, Raw: "1"}, expected: int64(1), target: int16(0)},
+		"int16/max-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MaxInt16), 10)}, expected: math.MaxInt16, target: int16(0)},
+		"int16/min-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MinInt16), 10)}, expected: math.MinInt16, target: int16(0)},
 
 		// int32
-		"int32/0":       {input: FlagValue{Set: true, Raw: "0"}, expected: int64(0), target: int32(0)},
-		"int32/-1":      {input: FlagValue{Set: true, Raw: "-1"}, expected: int64(-1), target: int32(0)},
-		"int32/1":       {input: FlagValue{Set: true, Raw: "1"}, expected: int64(1), target: int32(0)},
-		"int32/max-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MaxInt32), 10)}, expected: math.MaxInt32, target: int32(0)},
-		"int32/min-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MinInt32), 10)}, expected: math.MinInt32, target: int32(0)},
+		"int32/0":       {input: FlagValue{HasValue: true, Raw: "0"}, expected: int64(0), target: int32(0)},
+		"int32/-1":      {input: FlagValue{HasValue: true, Raw: "-1"}, expected: int64(-1), target: int32(0)},
+		"int32/1":       {input: FlagValue{HasValue: true, Raw: "1"}, expected: int64(1), target: int32(0)},
+		"int32/max-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MaxInt32), 10)}, expected: math.MaxInt32, target: int32(0)},
+		"int32/min-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MinInt32), 10)}, expected: math.MinInt32, target: int32(0)},
 
 		// int64
-		"int64/0":       {input: FlagValue{Set: true, Raw: "0"}, expected: int64(0), target: int64(0)},
-		"int64/-1":      {input: FlagValue{Set: true, Raw: "-1"}, expected: int64(-1), target: int64(0)},
-		"int64/1":       {input: FlagValue{Set: true, Raw: "1"}, expected: int64(1), target: int64(0)},
-		"int64/max-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MaxInt64), 10)}, expected: math.MaxInt64, target: int64(0)},
-		"int64/min-int": {input: FlagValue{Set: true, Raw: strconv.FormatInt(int64(math.MinInt64), 10)}, expected: math.MinInt64, target: int64(0)},
+		"int64/0":       {input: FlagValue{HasValue: true, Raw: "0"}, expected: int64(0), target: int64(0)},
+		"int64/-1":      {input: FlagValue{HasValue: true, Raw: "-1"}, expected: int64(-1), target: int64(0)},
+		"int64/1":       {input: FlagValue{HasValue: true, Raw: "1"}, expected: int64(1), target: int64(0)},
+		"int64/max-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MaxInt64), 10)}, expected: math.MaxInt64, target: int64(0)},
+		"int64/min-int": {input: FlagValue{HasValue: true, Raw: strconv.FormatInt(int64(math.MinInt64), 10)}, expected: math.MinInt64, target: int64(0)},
 	}
 	for name, test := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestNewValueFromInt_error_syntax(t *testing.T) {
 			ctx := context.Background()
 
 			var target int
-			_, err := newValueFromInt(ctx, FlagValue{Set: true, Raw: input}, reflect.ValueOf(target))
+			_, err := newValueFromInt(ctx, FlagValue{HasValue: true, Raw: input}, reflect.ValueOf(target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}
@@ -160,7 +160,7 @@ func TestNewValueFromInt_error_overflow(t *testing.T) {
 
 			ctx := context.Background()
 
-			_, err := newValueFromInt(ctx, FlagValue{Set: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
+			_, err := newValueFromInt(ctx, FlagValue{HasValue: true, Raw: test.value.String()}, reflect.ValueOf(test.target))
 			if err == nil {
 				t.Fatal("Expected error, got none")
 			}
