@@ -201,10 +201,10 @@ func makeWrappedAndPaddedTable(input [][2]string) string {
 			maxCol1 = len(row[0])
 		}
 	}
-	if uint(maxCol1+len(pad)+len(pad)) >= limit { //nolint:gosec // len() can't return a negative integer
+	if uint(maxCol1+len(pad)+len(pad)) >= limit {
 		panic("padding and first column exceeds limit")
 	}
-	limit = limit - uint(maxCol1+len(pad)+len(pad)) //nolint:gosec // len() can't return a negative integer
+	limit = limit - uint(maxCol1+len(pad)+len(pad))
 	var result strings.Builder
 	for _, row := range input {
 		result.WriteString(pad)

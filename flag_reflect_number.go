@@ -35,11 +35,11 @@ func newValueFromInt(_ context.Context, flag FlagValue, target reflect.Value) (r
 	case reflect.Int:
 		result = int(value)
 	case reflect.Int8:
-		result = int8(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = int8(value)
 	case reflect.Int16:
-		result = int16(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = int16(value)
 	case reflect.Int32:
-		result = int32(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = int32(value)
 	case reflect.Int64:
 		result = value
 	default:
@@ -79,11 +79,11 @@ func newValueFromUint(_ context.Context, flag FlagValue, target reflect.Value) (
 	case reflect.Uint:
 		result = uint(value)
 	case reflect.Uint8:
-		result = uint8(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = uint8(value)
 	case reflect.Uint16:
-		result = uint16(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = uint16(value)
 	case reflect.Uint32:
-		result = uint32(value) //nolint:gosec // we parsed it at the right size, we would have a strconv.ErrRange if there was going to be an overflow
+		result = uint32(value)
 	case reflect.Uint64:
 		result = value
 	default:

@@ -26,7 +26,7 @@ func newValue(ctx context.Context, flag FlagValue, target reflect.Value) (reflec
 		return newValueFromTime(ctx, flag, target)
 	}
 
-	switch target.Kind() { //nolint:exhaustive // we have a default assigned for a reason
+	switch target.Kind() { //nolint:exhaustive,nolintlint // we have a default assigned for a reason
 	case reflect.Bool:
 		return newValueFromBoolean(ctx, flag, target)
 	case reflect.String:
