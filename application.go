@@ -124,6 +124,26 @@ func (app Application) Run(ctx context.Context, opts ...RunOption) int {
 				return resp.Code
 			}
 		}
+
+		if injector, ok := app.Handler.(DefInjector); ok {
+			injector.InjectDefs(ctx, DefParams{
+				CommandPath:     result.CommandPath,
+				Command:         result.Command,
+				AcceptableFlags: result.DefinedFlags,
+				App:             app,
+			}, resp)
+		}
+
+		// Build makes us a handler, parsing all the input and injecting it
+		// into a handler-specific format
+		handler := app.Handler.Build(ctx, result.Flags, result.Args, resp)
+		if resp.Code > 0 {
+			return resp.Code
+		}
+
+		// Handle executes the handler
+		handler.Handle(ctx, resp)
+		return resp.Code
 	}
 
 	if result.Command.Handler == nil {
@@ -171,7 +191,7 @@ func (app Application) Run(ctx context.Context, opts ...RunOption) int {
 // Validate determines whether an [Application] has a valid definition or not.
 func (app Application) Validate(ctx context.Context) error {
 	var errs error
-	if len(app.Commands) < 1 {
+	if len(app.Commands) < 1 && app.Handler == nil {
 		errs = errors.Join(errs, ErrAppHasNoCommands)
 	}
 	flagKeys := map[string]struct{}{}
