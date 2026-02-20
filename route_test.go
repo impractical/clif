@@ -40,6 +40,12 @@ func TestRoute(t *testing.T) {
 				},
 			},
 		},
+		"mistaken-short-flags": {
+			input:           []string{"hello", "-name=foo"},
+			app:             clif.Application{Commands: []clif.Command{{Name: "hello", Flags: []clif.FlagDef{{Name: "--name"}}, Handler: funcCommandHandler(func(_ context.Context, _ *clif.Response) {})}}},
+			expectedCmdName: "hello",
+			expectedErr:     clif.ShortFlagsWithValueError{Flag: "-name=foo"},
+		},
 	}
 	for name, testCase := range cases {
 		t.Run(name, func(t *testing.T) {

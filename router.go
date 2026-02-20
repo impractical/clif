@@ -117,3 +117,11 @@ func (err UnknownTokenTypeError) Error() string {
 	}
 	return fmt.Sprintf("unknown token type for %q, could be: %s", err.value, strings.Join(mightBe, ", "))
 }
+
+type ShortFlagsWithValueError struct {
+	Flag string
+}
+
+func (err ShortFlagsWithValueError) Error() string {
+	return fmt.Sprintf("short flag %q has an =, which is invalid. Flags with values need to be declared with --. Do you mean -%s?", err.Flag, err.Flag)
+}

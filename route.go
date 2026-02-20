@@ -41,6 +41,11 @@ func Route(ctx context.Context, app Application, input []string) (RouteResult, e
 	}
 	parser := newParser(ctx, input)
 	parser.mark(ctx)
+	for _, token := range parser.tokens {
+		if token.isType(tokenTypeShortFlag) && strings.Contains(token.value, "=") {
+			return RouteResult{}, ShortFlagsWithValueError{Flag: token.value}
+		}
+	}
 	parser.normalize(ctx)
 	commandDefs := inputParserCommand{
 		subcommands: map[string]inputParserCommand{},
